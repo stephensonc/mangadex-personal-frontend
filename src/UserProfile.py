@@ -36,7 +36,7 @@ class UserProfile:
         print("Authentication successful") if self.auth_info.status_code == 200 else print("Authentication failed, check your credentials")
         
         self.jwt = self.auth_info.json()["token"]["session"]
-        self.refresh_token = self.auth_info.json()["token"]["refresh"]
+        self.month_access_token = self.auth_info.json()["token"]["refresh"]
         self.headers = {"Authorization": "Bearer " + self.jwt}
         # Write refresh token to configfile
         yaml_dict = {
@@ -82,7 +82,7 @@ class UserProfile:
             response = requests.get(self.mangadex_url_base + "/user/follows/manga", headers=self.headers)
         if response.status_code == 200:
             self.follows_list = response.json()["results"]
-            self.followed_titles = [manga["data"]["attributes"]["title"] for manga in self.follows_list]
+            self.followed_titles = [(manga["data"]["attributes"]["title"]["en"], manga["data"]["id"]) for manga in self.follows_list]
             return self.follows_list
         else:
             print(f"Error fetching follows list: Error code {response.status_code}")
