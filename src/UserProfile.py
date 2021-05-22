@@ -9,20 +9,23 @@ class UserProfile:
 
     def __init__(self) -> None:
 
-        self._default_auth_config = {}
+        self._default_auth_config = {
+            "user_credentials": {"username": "", "password": ""},
+            "refresh_token": ""
+        }
 
         self.mangadex_url_base = "https://api.mangadex.org"
         if not os.path.isfile("auth_config.yml"):
             with open("auth_config.yml", "w+") as auth_configfile:
-                yaml.safe_dump(self._default_auth_config, auth_configfile)
+                yaml_dict = self._default_auth_config
+                yaml_dict["user_credentials"]["username"], yaml_dict["user_credentials"]["password"] = self.prompt_for_user_credentials()
+                yaml.safe_dump(yaml_dict, auth_configfile)
         with open("auth_config.yml") as auth_configfile:
             config_data = yaml.safe_load(auth_configfile)
+            print(config_data)
             self._username = config_data["user_credentials"]["username"]
             self._password = config_data["user_credentials"]["password"]
-            if self._username or self._password in "":
-                # Prompt user for their credentials on first time setup
-                self._username, self._password = self.prompt_for_user_credentials()
-            self._refresh_token = config_data["refresh_token"]
+            self._month_access_token = config_data["refresh_token"]
         self.api_is_online = self.check_api_status()
         if self.api_is_online:
             self.refresh_session()
@@ -43,23 +46,20 @@ class UserProfile:
         """Authenticate the user with credentials in auth_config.yml."""
         print(f"Authenticating user: {self._username}")
         request_data = {
-            "_username": self._username,
-            "_password": self._password
+            "username": self._username,
+            "password": self._password
         }
         self.auth_info = requests.post(self.mangadex_url_base + "/auth/login", json=request_data)
-        print("Authentication successful") if self.auth_info.status_code == 200 else print("Authentication failed, check your credentials")
+        print("Authentication successful") if self.auth_info.status_code == 200 else print(f"Authentication failed, check your credentials: Error code {self.auth_info.status_code}")
         
         self._jwt = self.auth_info.json()["token"]["session"]
         self._month_access_token = self.auth_info.json()["token"]["refresh"]
         self._headers = {"Authorization": "Bearer " + self._jwt}
         # Write refresh token to auth_configfile
-        yaml_dict = {
-            "user_credentials": {"username": "", "password": ""},
-            "refresh_token": ""
-        }
+        yaml_dict = self._default_auth_config
         with open("auth_config.yml", "r") as auth_configfile:
              yaml_dict = yaml.safe_load(auth_configfile)
-             yaml_dict["refresh_token"] = self._refresh_token
+             yaml_dict["refresh_token"] = self._month_access_token
         with open("auth_config.yml", "w") as auth_configfile:
             yaml.safe_dump(yaml_dict, auth_configfile)
         
@@ -79,14 +79,14 @@ class UserProfile:
     
     def refresh_session(self):
         data_json = {
-            "token": self._refresh_token
+            "token": self._month_access_token
         }
         response = requests.post(self.mangadex_url_base + "/auth/refresh", json=data_json)
         if response.status_code == 400:
             self.authenticate_user()
         else:
             self._jwt = response.json()["token"]["session"]
-            self._refresh_token = response.json()["token"]["refresh"]
+            self._month_access_token = response.json()["token"]["refresh"]
             self._headers = {"Authorization": "Bearer " + self._jwt}
 
     # END REFRESH FUNCTIONS
