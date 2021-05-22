@@ -8,7 +8,7 @@ class UserProfile:
 
         self.mangadex_url_base = "https://api.mangadex.org"
 
-        with open("../config.yml") as configfile:
+        with open("config.yml") as configfile:
             self.config = yaml.safe_load(configfile)
         self.username = self.config["user_credentials"]["username"]
         self.password = self.config["user_credentials"]["password"]
@@ -28,3 +28,6 @@ class UserProfile:
         }
         self.auth_info = requests.post(self.mangadex_url_base + "/auth/login", json=request_data)
         return self.auth_info.status_code
+
+if __name__ == "__main__":
+    profile = UserProfile()
