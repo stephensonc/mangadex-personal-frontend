@@ -2,4 +2,4 @@
 __pycache__/
 
 # User credentials
-credentials.yml
+config.yml
