@@ -1,4 +1,5 @@
 from requests.models import Response
+import os
 import yaml
 import requests
 
@@ -8,17 +9,23 @@ class UserProfile:
 
     def __init__(self) -> None:
 
-        self.mangadex_url_base = "https://api.mangadex.org"
+        self._default_auth_config = {}
 
-        with open("config.yml") as configfile:
-            config_data = yaml.safe_load(configfile)
+        self.mangadex_url_base = "https://api.mangadex.org"
+        if not os.path.isfile("auth_config.yml"):
+            with open("auth_config.yml", "w+") as auth_configfile:
+                yaml.safe_dump(self._default_auth_config, auth_configfile)
+        with open("auth_config.yml") as auth_configfile:
+            config_data = yaml.safe_load(auth_configfile)
             self._username = config_data["user_credentials"]["username"]
             self._password = config_data["user_credentials"]["password"]
+            if self._username or self._password in "":
+                # Prompt user for their credentials on first time setup
+                self._username, self._password = self.prompt_for_user_credentials()
             self._refresh_token = config_data["refresh_token"]
         self.api_is_online = self.check_api_status()
         if self.api_is_online:
             self.refresh_session()
-
 
     # START AUTOMATIC FUNCTIONS
 
@@ -26,9 +33,14 @@ class UserProfile:
         """Verify that the api auth system is online."""
         return requests.get(self.mangadex_url_base + "/auth/check").status_code == 200
 
+    def prompt_for_user_credentials(self):
+        username = input("Please enter your MangaDex username: ")
+        password = input("Please enter your MangaDex password: ")
+        return username, password
+
     # Only run if refresh token is invalid
     def authenticate_user(self):
-        """Authenticate the user with credentials in config.yml."""
+        """Authenticate the user with credentials in auth_config.yml."""
         print(f"Authenticating user: {self._username}")
         request_data = {
             "_username": self._username,
@@ -40,21 +52,21 @@ class UserProfile:
         self._jwt = self.auth_info.json()["token"]["session"]
         self._month_access_token = self.auth_info.json()["token"]["refresh"]
         self._headers = {"Authorization": "Bearer " + self._jwt}
-        # Write refresh token to configfile
+        # Write refresh token to auth_configfile
         yaml_dict = {
             "user_credentials": {"username": "", "password": ""},
             "refresh_token": ""
         }
-        with open("config.yml", "r") as configfile:
-             yaml_dict = yaml.safe_load(configfile)
+        with open("auth_config.yml", "r") as auth_configfile:
+             yaml_dict = yaml.safe_load(auth_configfile)
              yaml_dict["refresh_token"] = self._refresh_token
-        with open("config.yml", "w") as configfile:
-            yaml.safe_dump(yaml_dict, configfile)
+        with open("auth_config.yml", "w") as auth_configfile:
+            yaml.safe_dump(yaml_dict, auth_configfile)
         
         return self.auth_info.status_code, self.auth_info
 
     def get_logged_user_id(self):
-        """Retrieves the user id of the user with credentials in config.yml."""
+        """Retrieves the user id of the user with credentials in auth_config.yml."""
         response = requests.get(self.mangadex_url_base + "/user/me")
         if response.status_code == 200:
             self.user_id = response["data"]["id"]
