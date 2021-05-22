@@ -7,14 +7,26 @@ import requests
 class UserProfile:
     """Facilitate iteractions with user-specific data."""
 
-    def __init__(self) -> None:
+    def __init__(self, username="", password="") -> None:
 
         self._default_auth_config = {
-            "user_credentials": {"username": "", "password": ""},
+            "user_credentials": {"username": username, "password": password},
             "refresh_token": ""
         }
+        if username == "" or password == "":
+            self._username, self._password, self._month_access_token = self.get_credentials_from_config()
+        else:
+            self.set_user_credentials()
 
         self.mangadex_url_base = "https://api.mangadex.org"
+        
+        self.api_is_online = self.check_api_status()
+        if self.api_is_online:
+            self.refresh_session()
+
+    # START AUTOMATIC FUNCTIONS
+
+    def get_credentials_from_config(self, file="auth_config.yml"):
         if not os.path.isfile("auth_config.yml"):
             with open("auth_config.yml", "w+") as auth_configfile:
                 yaml_dict = self._default_auth_config
@@ -22,19 +34,15 @@ class UserProfile:
                 yaml.safe_dump(yaml_dict, auth_configfile)
         with open("auth_config.yml") as auth_configfile:
             config_data = yaml.safe_load(auth_configfile)
-            print(config_data)
-            self._username = config_data["user_credentials"]["username"]
-            self._password = config_data["user_credentials"]["password"]
-            self._month_access_token = config_data["refresh_token"]
-        self.api_is_online = self.check_api_status()
-        if self.api_is_online:
-            self.refresh_session()
-
-    # START AUTOMATIC FUNCTIONS
+            return config_data["user_credentials"]["username"], config_data["user_credentials"]["password"], config_data["refresh_token"]
 
     def check_api_status(self) -> bool:
         """Verify that the api auth system is online."""
         return requests.get(self.mangadex_url_base + "/auth/check").status_code == 200
+
+    def set_user_credentials(self, username, password):
+        self._username = username
+        self._password = password
 
     def prompt_for_user_credentials(self):
         username = input("Please enter your MangaDex username: ")
@@ -42,7 +50,7 @@ class UserProfile:
         return username, password
 
     # Only run if refresh token is invalid
-    def authenticate_user(self):
+    def authenticate_user(self, username="", password=""):
         """Authenticate the user with credentials in auth_config.yml."""
         print(f"Authenticating user: {self._username}")
         request_data = {
@@ -90,6 +98,11 @@ class UserProfile:
             self._headers = {"Authorization": "Bearer " + self._jwt}
 
     # END REFRESH FUNCTIONS
+    # START EXTERNALLY-CALLED FUNCTIONS
+
+    def get_username(self):
+        return self._username
+
     def get_user_followed_manga_list(self):
         response = requests.get(self.mangadex_url_base + "/user/follows/manga", headers=self._headers)
         if response.status_code == 401:
@@ -102,7 +115,7 @@ class UserProfile:
         else:
             print(f"Error fetching follows list: Error code {response.status_code}")
 
-
+    # END EXTERNALLY-CALLED FUNCTIONS
 
 if __name__ == "__main__":
     profile = UserProfile()
