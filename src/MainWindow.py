@@ -17,8 +17,9 @@ class MainWindow(tk.Tk):
         self.menu_bar.add_command(label="Exit", command=self.destroy)
         self.config(menu=self.menu_bar)
 
-    def create_user_frame(self, username="", password=""):
-        return UserInfoFrame(self, username, password)
+    def create_user_frame(self):
+        user_frame = UserInfoFrame(self)
+        return user_frame
 
     def user_command(self):
         print("Hello World")

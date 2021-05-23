@@ -1,24 +1,78 @@
+import os
 import tkinter as tk
 from UserProfile import UserProfile
 
 class UserInfoFrame(tk.Frame):
 
-    def __init__(self, master=None, username="", password=""):
+    def __init__(self, master=None):
         super(UserInfoFrame, self).__init__(master)
         self.master = master
+
+        self._username = ""
+        self._password = ""
+        self.user_profile = self.set_up_user_profile()
         self.pack(side="left")
-        self.user_profile = UserProfile(username, password)
         self.create_widgets()
+
+
 
     def create_widgets(self):
 
         self.create_follows_list_widget()
-
-        self.button1 = tk.Button(self)
-        self.button1["text"] = "This is a button"
-        self.button1["command"] = self.say_hello
-        self.button1.pack(side="right")
     
+    def set_up_user_profile(self):
+        user_profile = UserProfile()
+
+        if not user_profile.config_exists():
+            # Prompt user for credentials
+            self.prompt_for_credentials()
+            user_profile.set_user_credentials(self._username, self._password)
+        else:
+            config_data = user_profile.get_data_from_config()
+            user_profile.set_user_credentials(config_data["user_credentials"]["username"], config_data["user_credentials"]["password"])
+        
+        user_profile.refresh_session()
+        return user_profile
+
+    def prompt_for_credentials(self):
+       
+        window = tk.Toplevel()
+        window.title("Login")
+        window.minsize(100, 50)
+        window.attributes('-topmost', True)
+        window.update()
+
+        left_frame = tk.Frame(window)
+        left_frame.pack(side="left")
+
+        right_frame = tk.Frame(window)
+        right_frame.pack(side="right")
+
+
+        username_field = tk.Entry(left_frame, width="20")
+        username_field.insert(0, "Username")
+        username_field.pack(side="top")
+
+        password_field = tk.Entry(left_frame, width="20")
+        password_field.insert(0, "Password")
+        password_field.pack(side="bottom")
+
+        self._prompt_window = window
+        self._username_field = username_field
+        self._password_field = password_field
+        submit_button = tk.Button(right_frame, text="Submit", command=self.obtain_credentials_from_prompt)
+        submit_button.pack(side="right")
+
+        self.wait_window(window)
+        return self._password
+    
+    def obtain_credentials_from_prompt(self):
+        self._username = self._username_field.get()
+        self._password = self._password_field.get()
+        self._prompt_window.destroy()
+        
+        
+
     def create_follows_list_widget(self):
         self.follows_label = tk.Label(self, text=f"{self.user_profile.get_username()}'s followed manga:")
         self.follows_label.pack(side="top")

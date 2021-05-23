@@ -7,34 +7,32 @@ import requests
 class UserProfile:
     """Facilitate iteractions with user-specific data."""
 
-    def __init__(self, username="", password="") -> None:
+    def __init__(self) -> None:
 
         self._default_auth_config = {
-            "user_credentials": {"username": username, "password": password},
+            "user_credentials": {"username": "", "password": ""},
             "refresh_token": ""
         }
-        if username == "" or password == "":
-            self._username, self._password, self._month_access_token = self.get_credentials_from_config()
-        else:
-            self.set_user_credentials()
+        self._username = ""
+        self._password = ""
+        self._month_access_token = ""
+        self._jwt = ""
+        self._headers = {"Authorization": "Bearer " + self._jwt}
 
         self.mangadex_url_base = "https://api.mangadex.org"
-        
-        self.api_is_online = self.check_api_status()
-        if self.api_is_online:
-            self.refresh_session()
 
     # START AUTOMATIC FUNCTIONS
 
-    def get_credentials_from_config(self, file="auth_config.yml"):
-        if not os.path.isfile("auth_config.yml"):
-            with open("auth_config.yml", "w+") as auth_configfile:
-                yaml_dict = self._default_auth_config
-                yaml_dict["user_credentials"]["username"], yaml_dict["user_credentials"]["password"] = self.prompt_for_user_credentials()
-                yaml.safe_dump(yaml_dict, auth_configfile)
-        with open("auth_config.yml") as auth_configfile:
-            config_data = yaml.safe_load(auth_configfile)
-            return config_data["user_credentials"]["username"], config_data["user_credentials"]["password"], config_data["refresh_token"]
+    def config_exists(self, file="auth_config.yml"):
+        return os.path.isfile(file)
+
+    def get_data_from_config(self, file="auth_config.yml"):
+        if self.config_exists():
+            with open("auth_config.yml") as auth_configfile:
+                config_data = yaml.safe_load(auth_configfile)
+                return config_data
+        else:
+            return {}
 
     def check_api_status(self) -> bool:
         """Verify that the api auth system is online."""
@@ -43,15 +41,15 @@ class UserProfile:
     def set_user_credentials(self, username, password):
         self._username = username
         self._password = password
+        yaml_dict = self.get_data_from_config() if self.config_exists() else self._default_auth_config
+        yaml_dict["user_credentials"]["username"] = username
+        yaml_dict["user_credentials"]["password"] = password
+        with open("auth_config.yml", "w") as configfile:
+            yaml.safe_dump(yaml_dict, configfile)
 
-    def prompt_for_user_credentials(self):
-        username = input("Please enter your MangaDex username: ")
-        password = input("Please enter your MangaDex password: ")
-        return username, password
 
-    # Only run if refresh token is invalid
     def authenticate_user(self, username="", password=""):
-        """Authenticate the user with credentials in auth_config.yml."""
+        """Authenticate the user"""
         print(f"Authenticating user: {self._username}")
         request_data = {
             "username": self._username,
@@ -65,6 +63,7 @@ class UserProfile:
         self._headers = {"Authorization": "Bearer " + self._jwt}
         # Write refresh token to auth_configfile
         yaml_dict = self._default_auth_config
+
         with open("auth_config.yml", "r") as auth_configfile:
              yaml_dict = yaml.safe_load(auth_configfile)
              yaml_dict["refresh_token"] = self._month_access_token
