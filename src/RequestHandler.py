@@ -4,8 +4,8 @@ import yaml
 import requests
 
 
-class UserProfile:
-    """Facilitate iteractions with user-specific data."""
+class RequestHandler:
+    """Facilitate iteractions with mangadex api."""
 
     def __init__(self) -> None:
 
@@ -21,7 +21,6 @@ class UserProfile:
 
         self.mangadex_url_base = "https://api.mangadex.org"
 
-    # START AUTOMATIC FUNCTIONS
 
     def config_exists(self, file="auth_config.yml"):
         return os.path.isfile(file)
@@ -81,9 +80,6 @@ class UserProfile:
             print(f"Error fetching user id: Error code {response.status_code}")
         return response.status_code, response
     
-    # END AUTOMATIC FUNCTIONS
-    # START REFRESH FUNCTIONS
-    
     def refresh_session(self):
         data_json = {
             "token": self._month_access_token
@@ -95,9 +91,6 @@ class UserProfile:
             self._jwt = response.json()["token"]["session"]
             self._month_access_token = response.json()["token"]["refresh"]
             self._headers = {"Authorization": "Bearer " + self._jwt}
-
-    # END REFRESH FUNCTIONS
-    # START EXTERNALLY-CALLED FUNCTIONS
 
     def get_username(self):
         return self._username
@@ -113,8 +106,6 @@ class UserProfile:
             return self.follows_list
         else:
             print(f"Error fetching follows list: Error code {response.status_code}")
-
-    # END EXTERNALLY-CALLED FUNCTIONS
 
 if __name__ == "__main__":
     profile = UserProfile()
