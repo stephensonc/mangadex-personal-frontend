@@ -211,3 +211,17 @@ class RequestHandler:
         else:
             print(f"Error fetching chapter from id: Error Code: {chapter_response.status_code}")
         return chapter_images
+
+    def get_searchable_manga_list(self, title=None, authors=None, artists=None, year=None, includedTags=None, includedTagsMode=None, limit=100):
+        arg_list = locals()
+        arg_list.pop("self")
+        args = arg_list.keys()
+        params = {}
+        for arg in args:
+            if arg_list[arg] is not None:
+                params.update({arg: arg_list[arg]})
+        response = requests.get(f"{self.mangadex_url_base}/manga", params=params)
+        if response.status_code == 200:
+            return response.json()["results"]
+        else:
+            return []

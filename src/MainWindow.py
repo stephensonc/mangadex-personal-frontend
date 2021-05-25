@@ -1,4 +1,5 @@
 import tkinter as tk
+from SearchFrame import SearchFrame
 from UserInfoFrame import UserInfoFrame
 from RequestHandler import RequestHandler
 
@@ -15,6 +16,7 @@ class MainWindow(tk.Tk):
         self.request_handler = self.set_up_request_handler()
 
         self.user_info_frame = UserInfoFrame(self.request_handler, self)
+        self.search_frame = SearchFrame(self.request_handler, self)
         self.create_menu_bar()
 
 
@@ -75,9 +77,13 @@ class MainWindow(tk.Tk):
         user_menu.add_command(label="Refresh follows list", command=self.user_info_frame.create_follows_list_widget)
         user_menu.add_command(label="Logout")
         self.menu_bar.add_cascade(label="Profile", menu=user_menu)
+        self.menu_bar.add_command(label="Random Manga", command=self.open_random_manga)
         self.menu_bar.add_command(label="Exit", command=self.destroy)
         self.config(menu=self.menu_bar)
 
+
+    def open_random_manga(self):
+        pass
 
 def main():
     main_window = MainWindow()
