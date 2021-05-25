@@ -18,6 +18,7 @@ class MangaViewer(tk.Toplevel):
         self.title(self.manga_title)
 
         self.scanlation_group = None
+        self.curr_chapter = None
         
         
         self.chapter_list = request_handler.get_manga_chapter_list_by_id(manga_id)
@@ -60,7 +61,20 @@ class MangaViewer(tk.Toplevel):
         chapter_number = float(chapter_title[0:re.search(r" ", chapter_title).start()])
         self.open_chapter_by_number(number=chapter_number)
 
+    def open_next_chapter(self):
+        for chap in self.chapter_list:
+            chap_num = float(chap["data"]["attributes"]["chapter"])
+            if chap_num > self.curr_chapter:
+                self.open_chapter_by_number(chap_num)
+                break
     
+    def open_prev_chapter(self):
+        idx = len(self.chapter_list) - 1
+        while idx > 0 and float(self.chapter_list[idx]["data"]["attributes"]["chapter"]) >= self.curr_chapter:
+            idx -= 1
+        prev_chap_number = float(self.chapter_list[idx]["data"]["attributes"]["chapter"])
+        self.open_chapter_by_number(prev_chap_number)
+
     def open_chapter_by_number(self, number):
         chapters_with_number = [chap for chap in self.chapter_list if float(chap["data"]["attributes"]["chapter"]) == number]
 
@@ -80,7 +94,8 @@ class MangaViewer(tk.Toplevel):
             elif self.scanlation_group == group:
                 chap_id = chapter["data"]["id"]
             
-        chapter_images = self.request_handler.get_chapter_by_id(chap_id)
+            self.curr_chapter = number
+        chapter_images = self.request_handler.get_chapter_images_by_id(chap_id)
         
 
                 

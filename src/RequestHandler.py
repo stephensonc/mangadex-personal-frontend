@@ -148,8 +148,9 @@ class RequestHandler:
             print(response.json())
             return None
 
-    def get_chapter_by_id(self, chapter_id):
-        print(chapter_id)
+    def get_chapter_images_by_id(self, chapter_id):
+        # print(chapter_id)
+        pass
 
 
 if __name__ == "__main__":
