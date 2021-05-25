@@ -5,7 +5,6 @@ from RequestHandler import RequestHandler
 class MainWindow(tk.Tk):
     def __init__(self, minsize=(900,950)):
         super(MainWindow, self).__init__()
-
         self.title("MangaDex Portal")
         self.minsize(minsize[0], minsize[1])
 

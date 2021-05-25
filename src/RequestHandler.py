@@ -1,7 +1,9 @@
+import time
+import sys
 from requests.models import Response
 import os
 import yaml
-import json
+from PIL import ImageTk, Image
 import requests
 
 
@@ -90,7 +92,13 @@ class RequestHandler:
         response = requests.post(self.mangadex_url_base + "/auth/refresh", json=data_json)
         if response.status_code == 400:
             self.authenticate_user()
+        elif response.status_code == 429:
+            # Too many requests
+            print(response.json())
+            print("Refresh rate exceeded")
+            self.refresh_session()
         else:
+            print(response.status_code)
             self._jwt = response.json()["token"]["session"]
             self._month_access_token = response.json()["token"]["refresh"]
             self._headers = {"Authorization": "Bearer " + self._jwt}
@@ -148,9 +156,59 @@ class RequestHandler:
             print(response.json())
             return None
 
-    def get_chapter_images_by_id(self, chapter_id):
+    def get_chapter_images_by_id(self, chapter_id, width=600, height=800,quality_mode="data"):
         # print(chapter_id)
-        pass
+        chapter_images = []
+        chapter_response = requests.get(f"{self.mangadex_url_base}/chapter/{chapter_id}")
+        if chapter_response.status_code == 200:
+            attributes = chapter_response.json()["data"]["attributes"]
+            hash = attributes["hash"]
+            at_home_ids = attributes[quality_mode]
+
+            at_home_response = requests.get(f"{self.mangadex_url_base}/at-home/server/{chapter_id}")
+            # print(at_home_response.json())
+            if at_home_response.status_code == 200:
+                print("Fetching images")
+                for chapter_image_filename in at_home_ids:
+                    at_home_base_url = at_home_response.json()["baseUrl"]
+                    request_url = f"{at_home_base_url}/{quality_mode}/{hash}/{chapter_image_filename}"
+                    image_url_response = requests.get(request_url)
+                    # print(f"Fetching image from url: {request_url}")
+                    
+                    start_time = int(time.time() * 1000)
+                    image = None
+                    num_bytes = 0
+                    if image_url_response.status_code == 200:
+                        pre_processed_img = Image.open(requests.get(request_url, stream=True).raw)
+                        
+                        original_size_img = ImageTk.PhotoImage(pre_processed_img)
+                        num_bytes = original_size_img.width() * original_size_img.height()
+
+                        image = ImageTk.PhotoImage(pre_processed_img.resize((width, height), Image.ANTIALIAS))
+                        chapter_images.append(image)
+                    end_time = int(time.time() * 1000)
+                    time_elapsed = end_time - start_time
+
+                    report_json = {
+                        "url": request_url,
+                        "success": image_url_response.status_code == 200,
+                        "cached": "x-cache" in image_url_response.headers.keys() and "HIT" in image_url_response.headers["X-Cache"],
+                        "bytes": num_bytes,
+                        "duration": time_elapsed
+                    }  
+
+
+                    # Provide feedback to the at-home source
+                    report_url = f"https://api.mangadex.network/report"
+                    report_response = requests.post(report_url, json=report_json)
+                    if report_response.status_code != 200:
+                        print(report_response.status_code)
+            else:
+                print(f"Error fetching base_url from at-home url: Error code: {at_home_response.status_code}")
+                print(at_home_response.json())
+        else:
+            print(f"Error fetching chapter from id: Error Code: {chapter_response.status_code}")
+        return chapter_images
 
 
 if __name__ == "__main__":

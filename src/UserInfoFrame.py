@@ -10,7 +10,7 @@ class UserInfoFrame(tk.Frame):
 
         self.request_handler = request_handler
 
-
+        self.follows_widget = tk.Listbox(self, width=50, height=40)
         self.followed_manga = self.get_follows_from_profile()
 
         self.master = master
@@ -31,11 +31,12 @@ class UserInfoFrame(tk.Frame):
 
 
     def create_follows_list_widget(self):
+        self.follows_widget.destroy()
         self.follows_widget = tk.Listbox(self, width=50, height=40)
         
-        follows_scroll = tk.Scrollbar(self, orient=tk.VERTICAL, command=self.follows_widget.yview)
-        self.follows_widget.config(yscrollcommand=follows_scroll.set)
-        follows_scroll.pack(side="right")
+        self.follows_scroll = tk.Scrollbar(self, orient=tk.VERTICAL, command=self.follows_widget.yview)
+        self.follows_widget.config(yscrollcommand=self.follows_scroll.set)
+        self.follows_scroll.pack(side="right")
 
         for element in self.followed_manga.keys():
             self.follows_widget.insert(END, element)

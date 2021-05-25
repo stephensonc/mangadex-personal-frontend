@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter.constants import END
+from tkinter.constants import END, NE, NW
 import math
 import re
 
@@ -19,10 +19,40 @@ class MangaViewer(tk.Toplevel):
 
         self.scanlation_group = None
         self.curr_chapter = None
+
+
+        self.canvas_width = 600
+        self.canvas_height = 800
+        self.view_frame = tk.Frame(self)
+        self.create_viewer_canvas()
         
         
         self.chapter_list = request_handler.get_manga_chapter_list_by_id(manga_id)
         self.create_chapter_listbox()
+
+    def create_viewer_canvas(self, images_list=[]):
+        self.images_list = images_list
+        self.view_frame.destroy()
+        self.view_frame = tk.Frame(self)
+        self.view_frame.pack(side="right")
+
+        self.view_pane = tk.Canvas(self.view_frame, height=self.canvas_height, width=self.canvas_width, bg='grey')
+
+        self.canvas_scrollbar = tk.Scrollbar(self.view_frame, orient=tk.VERTICAL, command=self.view_pane.yview)
+        self.view_pane.config(yscrollcommand=self.canvas_scrollbar.set)
+        self.canvas_scrollbar.pack(side="right")
+        self.view_pane.pack(side="left")
+        self.view_pane.bind('<Enter>', self._bind_to_mousewheel)
+        self.view_pane.bind('<Leave>', self._unbind_to_mousewheel)
+
+        if self.images_list != []:
+            ycoord = 0
+            for image in self.images_list:
+                print(f"Adding image")
+                self.view_pane.config(scrollregion=self.view_pane.bbox("all"))
+                self.view_pane.create_image(0, ycoord, anchor=NW,image=image)
+                ycoord = ycoord + image.height()
+        
 
     def create_chapter_listbox(self):
         self.control_frame = tk.Frame(self)
@@ -44,15 +74,18 @@ class MangaViewer(tk.Toplevel):
 
         self.chapter_listbox.config(width=avg_len)
         
-        chapter_scroll = tk.Scrollbar(self.control_frame, orient=tk.VERTICAL, command=self.chapter_listbox.yview)
-        chapter_scroll.pack(side="right")
-        chapter_x_scroll = tk.Scrollbar(self.control_frame, orient=tk.HORIZONTAL, command=self.chapter_listbox.xview)
-        chapter_x_scroll.pack(side="bottom")
+        self.chapter_scroll = tk.Scrollbar(self.control_frame, orient=tk.VERTICAL, command=self.chapter_listbox.yview)
+        self.chapter_scroll.pack(side="right")
+        self.chapter_x_scroll = tk.Scrollbar(self.control_frame, orient=tk.HORIZONTAL, command=self.chapter_listbox.xview)
+        self.chapter_x_scroll.pack(side="bottom")
 
-        self.chapter_listbox.config(yscrollcommand=chapter_scroll.set)
-        self.chapter_listbox.config(xscrollcommand=chapter_x_scroll.set)
-        self.chapter_listbox.bind("<<ListboxSelect>>", self.open_chapter_from_box)
+        self.chapter_listbox.config(yscrollcommand=self.chapter_scroll.set)
+        self.chapter_listbox.config(xscrollcommand=self.chapter_x_scroll.set)
+        # self.chapter_listbox.bind("<<ListboxSelect>>", self.open_chapter_from_box)
         self.chapter_listbox.pack(side="bottom")
+
+        chapter_select_button = tk.Button(self.control_frame, text="Open Selected Chapter", command=self.open_chapter_from_box)
+        chapter_select_button.pack()
 
 
     def open_chapter_from_box(self, event=None):
@@ -96,10 +129,17 @@ class MangaViewer(tk.Toplevel):
             
             self.curr_chapter = number
         chapter_images = self.request_handler.get_chapter_images_by_id(chap_id)
+        self.create_viewer_canvas(chapter_images)
         
 
-                
-
+    def _bind_to_mousewheel(self, event):
+        self.view_pane.bind_all("<MouseWheel>", self._on_mousewheel)
+    
+    def _unbind_to_mousewheel(self, event):
+        self.view_pane.unbind_all("<MouseWheel>")
+    
+    def _on_mousewheel(self, event):
+        self.view_pane.yview_scroll(int(-1*(event.delta/120)), "units")
 
 
         
