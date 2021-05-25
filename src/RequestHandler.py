@@ -157,60 +157,64 @@ class RequestHandler:
             print(response.json())
             return None
 
-    def get_chapter_images_by_id(self, chapter_id, width=600, height=800,quality_mode="data"):
-        chapter_images = []
+    def get_chapter_images_by_id(self, chapter_id, width=600, height=800,quality_mode="dataSaver"):
+
+        url_quality = quality_mode if quality_mode == "data" else "data-saver"
+
+        image_urls = []
         chapter_response = requests.get(f"{self.mangadex_url_base}/chapter/{chapter_id}")
         if chapter_response.status_code == 200:
             attributes = chapter_response.json()["data"]["attributes"]
             hash = attributes["hash"]
             at_home_ids = attributes[quality_mode]
-
             # Should contain the base_url for the image server
             at_home_response = requests.get(f"{self.mangadex_url_base}/at-home/server/{chapter_id}")
 
             if at_home_response.status_code == 200:
-                print("Fetching images")
                 for chapter_image_filename in at_home_ids:
                     at_home_base_url = at_home_response.json()["baseUrl"]
-                    request_url = f"{at_home_base_url}/{quality_mode}/{hash}/{chapter_image_filename}"
-                    image_url_response = requests.get(request_url)
-                    # print(f"Fetching image from url: {request_url}")
-                    
-                    start_time = int(time.time() * 1000)
-                    image = None
-                    num_bytes = 0
-                    if image_url_response.status_code == 200:
-                        pre_processed_img = Image.open(requests.get(request_url, stream=True).raw)
-                        
-                        original_size_img = ImageTk.PhotoImage(pre_processed_img)
-                        num_bytes = original_size_img.width() * original_size_img.height()
-                        
-                        # Resize image to fit within confines of MangaViewer
-                        image = ImageTk.PhotoImage(pre_processed_img.resize((width, height), Image.ANTIALIAS))
-                        chapter_images.append(image)
-                    end_time = int(time.time() * 1000)
-                    time_elapsed = end_time - start_time
-
-                    report_json = {
-                        "url": request_url,
-                        "success": image_url_response.status_code == 200,
-                        "cached": "x-cache" in image_url_response.headers.keys() and "HIT" in image_url_response.headers["X-Cache"],
-                        "bytes": num_bytes,
-                        "duration": time_elapsed
-                    }  
-
-
-                    # Provide feedback to the at-home source
-                    report_url = f"https://api.mangadex.network/report"
-                    report_response = requests.post(report_url, json=report_json)
-                    if report_response.status_code != 200:
-                        print(report_response.status_code)
+                    request_url = f"{at_home_base_url}/{url_quality}/{hash}/{chapter_image_filename}"
+                    image_urls.append(request_url)
             else:
                 print(f"Error fetching base_url from at-home url: Error code: {at_home_response.status_code}")
                 print(at_home_response.json())
         else:
             print(f"Error fetching chapter from id: Error Code: {chapter_response.status_code}")
-        return chapter_images
+        return image_urls
+
+
+    def get_single_chapter_image_by_url(self, request_url, width=600, height=800):
+        image_url_response = requests.get(request_url)
+        # print(f"Fetching image from url: {request_url}")
+        
+        start_time = int(time.time() * 1000)
+        image = None
+        num_bytes = 0
+        if image_url_response.status_code == 200:
+            pre_processed_img = Image.open(requests.get(request_url, stream=True).raw)
+            
+            original_size_img = ImageTk.PhotoImage(pre_processed_img)
+            num_bytes = original_size_img.width() * original_size_img.height()
+            
+            # Resize image to fit within confines of MangaViewer
+            image = ImageTk.PhotoImage(pre_processed_img.resize((width, height), Image.ANTIALIAS))
+        end_time = int(time.time() * 1000)
+        time_elapsed = end_time - start_time
+
+        report_json = {
+            "url": request_url,
+            "success": image_url_response.status_code == 200,
+            "cached": "x-cache" in image_url_response.headers.keys() and "HIT" in image_url_response.headers["X-Cache"],
+            "bytes": num_bytes,
+            "duration": time_elapsed
+        }  
+        # Provide feedback to the at-home source
+        report_url = f"https://api.mangadex.network/report"
+        report_response = requests.post(report_url, json=report_json)
+        if report_response.status_code != 200:
+            print(report_response.status_code)
+        
+        return image
 
     def get_searchable_manga_list(self, title=None, authors=None, artists=None, year=None, includedTags=None, includedTagsMode=None, limit=100):
         arg_list = locals()

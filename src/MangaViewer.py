@@ -1,4 +1,5 @@
 import tkinter as tk
+import html
 from tkinter.constants import END, NE, NW, RAISED
 import math
 import re
@@ -11,6 +12,7 @@ class MangaViewer(tk.Toplevel):
         self.config(bg=bg)
         self.minsize(width=800,height=900)
         self.manga_id = manga_id
+        # print(manga_id)
 
         self.request_handler = request_handler
 
@@ -31,8 +33,7 @@ class MangaViewer(tk.Toplevel):
         self.chapter_list = request_handler.get_manga_chapter_list_by_id(manga_id)
         self.create_chapter_listbox()
 
-    def create_viewer_canvas(self, images_list=[]):
-        self.images_list = images_list
+    def create_viewer_canvas(self, image_url_list=[]):
         self.view_frame.destroy()
         self.view_frame = tk.Frame(self)
         self.view_frame.pack(side="right")
@@ -42,7 +43,7 @@ class MangaViewer(tk.Toplevel):
         self.canvas_scrollbar = tk.Scrollbar(self.view_frame, orient=tk.VERTICAL, command=self.view_pane.yview)
         self.view_pane.config(yscrollcommand=self.canvas_scrollbar.set)
         self.canvas_scrollbar.pack(side="right")
-        self.view_pane.pack()
+        self.view_pane.pack(side="top")
         self.view_pane.bind('<Enter>', self._bind_to_mousewheel)
         self.view_pane.bind('<Leave>', self._unbind_to_mousewheel)
 
@@ -54,22 +55,39 @@ class MangaViewer(tk.Toplevel):
         prev_button = tk.Button(nav_button_frame, text="Prev", command=self.open_prev_chapter)
         prev_button.pack(side="left")
 
-        if self.images_list != []:
-            print("Adding images")
+        self.images_list = []
+        if image_url_list !=[]:
+            idx = 1
             ycoord = 0
-            for image in self.images_list:
-                self.view_pane.config(scrollregion=self.view_pane.bbox("all"))
+            for image_url in image_url_list:
+                print(f"Retrieving image: {idx} of {len(image_url_list)}")
+                image = self.request_handler.get_single_chapter_image_by_url(image_url)
+                self.images_list.append(image)
+                print(f"Adding image: {idx} of {len(image_url_list)}")
                 self.view_pane.create_image(0, ycoord, anchor=NW,image=image)
                 ycoord = ycoord + image.height()
+                idx += 1
+        self.view_pane.config(scrollregion=self.view_pane.bbox("all"))
         
 
     def create_chapter_listbox(self):
         self.control_frame = tk.Frame(self)
         self.control_frame.pack(side="left")
+
+        title_label = tk.Label(self.control_frame, text=self.manga_title, font=("Arial", 15, "normal"), relief=RAISED, wraplength=400, height=2)
+        title_label.pack(side="top")
+
+        # desc = self.metadata["attributes"]["description"]["en"]
+        # english_desc = desc[re.search(r"\[b\]\[u\]English\:\[\/u\]\[\/b\]", desc).end() : re.search(r"\[hr\]", desc).start()]
+        # english_desc = html.unescape(english_desc)
+        # desc_label = tk.Label(self.control_frame, text=english_desc, wraplength=400, font=("Helvetica", 10,"normal"))
+        # print(self.metadata["attributes"]["description"]["en"])
+        # desc_label.pack()
+
         chapter_list_label = tk.Label(self.control_frame, text="Chapter list:", relief=RAISED, font=("Arial", 25))
         chapter_list_label.pack(side="top")
 
-        self.chapter_listbox = tk.Listbox(self.control_frame, height=50)
+        self.chapter_listbox = tk.Listbox(self.control_frame, height=40)
 
         total_length = 0
         for chapter in self.chapter_list:
@@ -79,7 +97,7 @@ class MangaViewer(tk.Toplevel):
             total_length += len(chap_num_and_title)
 
             self.chapter_listbox.insert(END, chap_num_and_title)
-        avg_len = math.ceil(total_length / len(self.chapter_list)) + 5
+        avg_len = math.ceil(total_length / len(self.chapter_list)) + 5 if len(self.chapter_list) > 0 else 5
 
         self.chapter_listbox.config(width=avg_len)
         
@@ -128,7 +146,6 @@ class MangaViewer(tk.Toplevel):
 
         chap_id = ""
         for chapter in chapters_with_number:
-            chap_attr = chapter["data"]["attributes"]
             for relationship in chapter["relationships"]:
                 if relationship["type"] == "scanlation_group":
                     group = relationship["id"]
@@ -143,8 +160,8 @@ class MangaViewer(tk.Toplevel):
                 chap_id = chapter["data"]["id"]
             
         self.curr_chapter = number
-        chapter_images = self.request_handler.get_chapter_images_by_id(chap_id)
-        self.create_viewer_canvas(chapter_images)
+        chapter_image_urls = self.request_handler.get_chapter_images_by_id(chap_id)
+        self.create_viewer_canvas(chapter_image_urls)
         
 
     def _bind_to_mousewheel(self, event):
