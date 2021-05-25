@@ -1,6 +1,7 @@
 from requests.models import Response
 import os
 import yaml
+import json
 import requests
 
 
@@ -36,6 +37,8 @@ class RequestHandler:
     def check_api_status(self) -> bool:
         """Verify that the api auth system is online."""
         return requests.get(self.mangadex_url_base + "/auth/check").status_code == 200
+
+    # Begin User Authentication
 
     def set_user_credentials(self, username, password):
         self._username = username
@@ -92,6 +95,10 @@ class RequestHandler:
             self._month_access_token = response.json()["token"]["refresh"]
             self._headers = {"Authorization": "Bearer " + self._jwt}
 
+
+    # End User Authentication
+
+
     def get_username(self):
         return self._username
 
@@ -102,12 +109,50 @@ class RequestHandler:
             response = requests.get(self.mangadex_url_base + "/user/follows/manga", headers=self._headers)
         if response.status_code == 200:
             self.follows_list = response.json()["results"]
-            self.followed_titles = [(manga["data"]["attributes"]["title"]["en"], manga["data"]["id"]) for manga in self.follows_list]
-            return self.follows_list
+            condensed_follows = {}
+            for manga in self.follows_list:
+                condensed_follows.update({manga["data"]["attributes"]["title"]["en"]:{"id": manga["data"]["id"]}})
+            return condensed_follows
         else:
             print(f"Error fetching follows list: Error code {response.status_code}")
+    
+
+    # Begin Manga requests
+
+    def get_manga_metadata_by_id(self, manga_id):
+        endpoint = f"{self.mangadex_url_base}/manga/{manga_id}"
+        response = requests.get(endpoint)
+        if "ok" in response.json()["result"]:
+            return response.json()["data"]
+        else:
+            print(response.status_code)
+            return None
+
+    def get_manga_chapter_list_by_id(self, manga_id, order="desc"):
+        endpoint = f"{self.mangadex_url_base}/manga/{manga_id}/feed"
+        # print(endpoint)
+
+        params = {
+            "limit": 500,
+            "translatedLanguage[]": ["en"],
+            "order[volume]": order,
+            "order[chapter]": order
+        }
+
+        response = requests.get(endpoint, params=params)
+
+        # print(response.request.path_url)
+        if response.status_code == 200:
+            return response.json()["results"]
+        else:
+            print(response.json())
+            return None
+
+    def get_chapter_by_id(self, chapter_id):
+        print(chapter_id)
+
 
 if __name__ == "__main__":
-    profile = UserProfile()
+    profile = RequestHandler()
     profile.get_user_followed_manga_list()
     print(profile.followed_titles)

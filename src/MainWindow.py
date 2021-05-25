@@ -9,9 +9,9 @@ class MainWindow(tk.Tk):
         self.title("MangaDex Portal")
         self.minsize(minsize[0], minsize[1])
 
-        self.request_handler = self.set_up_request_handler()
         self._username = ""
         self._password = ""
+        self.request_handler = self.set_up_request_handler()
 
         self.user_info_frame = UserInfoFrame(self.request_handler, self)
         self.create_menu_bar()
@@ -33,6 +33,7 @@ class MainWindow(tk.Tk):
 
     def prompt_for_credentials(self):
        
+       # Create new window
         window = tk.Toplevel()
         window.title("Login")
         window.minsize(100, 50)
@@ -41,10 +42,8 @@ class MainWindow(tk.Tk):
 
         left_frame = tk.Frame(window)
         left_frame.pack(side="left")
-
         right_frame = tk.Frame(window)
         right_frame.pack(side="right")
-
 
         username_field = tk.Entry(left_frame, width="20")
         username_field.insert(0, "Username")
@@ -54,6 +53,7 @@ class MainWindow(tk.Tk):
         password_field.insert(0, "Password")
         password_field.pack(side="bottom")
 
+        # Required global variables in order to get credentials on button press
         self._prompt_window = window
         self._username_field = username_field
         self._password_field = password_field
@@ -77,8 +77,6 @@ class MainWindow(tk.Tk):
         self.menu_bar.add_command(label="Exit", command=self.destroy)
         self.config(menu=self.menu_bar)
 
-    def user_command(self):
-        print("Hello World")
 
 def main():
     main_window = MainWindow()
