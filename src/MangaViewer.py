@@ -1,13 +1,14 @@
 import tkinter as tk
-from tkinter.constants import END, NE, NW
+from tkinter.constants import END, NE, NW, RAISED
 import math
 import re
 
 class MangaViewer(tk.Toplevel):
 
-    def __init__(self, request_handler, manga_id):
+    def __init__(self, request_handler, manga_id, bg="grey"):
         super(MangaViewer, self).__init__()
-
+        # Set background color
+        self.config(bg=bg)
         self.minsize(width=800,height=900)
         self.manga_id = manga_id
 
@@ -41,14 +42,22 @@ class MangaViewer(tk.Toplevel):
         self.canvas_scrollbar = tk.Scrollbar(self.view_frame, orient=tk.VERTICAL, command=self.view_pane.yview)
         self.view_pane.config(yscrollcommand=self.canvas_scrollbar.set)
         self.canvas_scrollbar.pack(side="right")
-        self.view_pane.pack(side="left")
+        self.view_pane.pack()
         self.view_pane.bind('<Enter>', self._bind_to_mousewheel)
         self.view_pane.bind('<Leave>', self._unbind_to_mousewheel)
 
+
+        nav_button_frame = tk.Frame(self.view_frame)
+        nav_button_frame.pack(side="bottom")
+        next_button = tk.Button(nav_button_frame, text="Next", command=self.open_next_chapter)
+        next_button.pack(side="right")
+        prev_button = tk.Button(nav_button_frame, text="Prev", command=self.open_prev_chapter)
+        prev_button.pack(side="left")
+
         if self.images_list != []:
+            print("Adding images")
             ycoord = 0
             for image in self.images_list:
-                print(f"Adding image")
                 self.view_pane.config(scrollregion=self.view_pane.bbox("all"))
                 self.view_pane.create_image(0, ycoord, anchor=NW,image=image)
                 ycoord = ycoord + image.height()
@@ -57,7 +66,7 @@ class MangaViewer(tk.Toplevel):
     def create_chapter_listbox(self):
         self.control_frame = tk.Frame(self)
         self.control_frame.pack(side="left")
-        chapter_list_label = tk.Label(self.control_frame, text="Chapter list:")
+        chapter_list_label = tk.Label(self.control_frame, text="Chapter list:", relief=RAISED, font=("Arial", 25))
         chapter_list_label.pack(side="top")
 
         self.chapter_listbox = tk.Listbox(self.control_frame, height=50)
@@ -95,20 +104,26 @@ class MangaViewer(tk.Toplevel):
         self.open_chapter_by_number(number=chapter_number)
 
     def open_next_chapter(self):
-        for chap in self.chapter_list:
-            chap_num = float(chap["data"]["attributes"]["chapter"])
-            if chap_num > self.curr_chapter:
-                self.open_chapter_by_number(chap_num)
-                break
+        print(f"Current chapter number: {self.curr_chapter}")
+
+        idx = len(self.chapter_list) - 1
+        while idx > 0 and float(self.chapter_list[idx]["data"]["attributes"]["chapter"]) <= self.curr_chapter:
+            idx -= 1
+        next_chap_number = float(self.chapter_list[idx]["data"]["attributes"]["chapter"])
+        print(f"Next chapter number: {next_chap_number}")
+        self.open_chapter_by_number(next_chap_number)
     
     def open_prev_chapter(self):
-        idx = len(self.chapter_list) - 1
-        while idx > 0 and float(self.chapter_list[idx]["data"]["attributes"]["chapter"]) >= self.curr_chapter:
-            idx -= 1
-        prev_chap_number = float(self.chapter_list[idx]["data"]["attributes"]["chapter"])
-        self.open_chapter_by_number(prev_chap_number)
+        for chap in self.chapter_list:
+            previous_chapter_number = float(chap["data"]["attributes"]["chapter"])
+            print(self.curr_chapter)
+            if previous_chapter_number < self.curr_chapter:
+                print(f"Next chapter number: {previous_chapter_number}")
+                self.open_chapter_by_number(previous_chapter_number)
+                break
 
     def open_chapter_by_number(self, number):
+        """Create a canvas object containing the images in the chapter corresponding with the number"""
         chapters_with_number = [chap for chap in self.chapter_list if float(chap["data"]["attributes"]["chapter"]) == number]
 
         chap_id = ""
@@ -127,7 +142,7 @@ class MangaViewer(tk.Toplevel):
             elif self.scanlation_group == group:
                 chap_id = chapter["data"]["id"]
             
-            self.curr_chapter = number
+        self.curr_chapter = number
         chapter_images = self.request_handler.get_chapter_images_by_id(chap_id)
         self.create_viewer_canvas(chapter_images)
         

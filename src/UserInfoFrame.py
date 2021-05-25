@@ -1,5 +1,5 @@
 import os
-from tkinter.constants import END
+from tkinter.constants import END, RAISED
 from MangaViewer import MangaViewer
 import tkinter as tk
 
@@ -17,21 +17,26 @@ class UserInfoFrame(tk.Frame):
         self._username = ""
         self._password = ""
         self.pack(side="left")
-        self.create_widgets()
 
-    def create_widgets(self):
-
-        self.follows_label = tk.Label(self, text=f"{self.request_handler.get_username()}'s followed manga:")
-        self.follows_label.pack(side="top")
-
+        self.follows_widget = tk.Listbox(self)
+        self.follows_scroll = tk.Scrollbar(self)
+        self.submit_box = tk.Button(self)
+        self.follows_label = tk.Label(self)
         self.create_follows_list_widget()
 
-        self.submit_box = tk.Button(self, text="Open Selected Manga", command=self.open_followed_manga)
-        self.submit_box.pack(side="top")
 
 
     def create_follows_list_widget(self):
         self.follows_widget.destroy()
+        self.follows_scroll.destroy()
+        self.submit_box.destroy()
+        self.follows_label.destroy()
+        self.follows_label = tk.Label(self, text=f"{self.request_handler.get_username()}'s followed manga:", relief=RAISED, font=("Arial", 25))
+        self.follows_label.pack(side="top")
+
+        self.submit_box = tk.Button(self, text="Open Selected Manga", command=self.open_followed_manga)
+        self.submit_box.pack(side="top")
+
         self.follows_widget = tk.Listbox(self, width=50, height=40)
         
         self.follows_scroll = tk.Scrollbar(self, orient=tk.VERTICAL, command=self.follows_widget.yview)

@@ -86,6 +86,7 @@ class RequestHandler:
         return response.status_code, response
     
     def refresh_session(self):
+        """Refresh the temporary access token."""
         data_json = {
             "token": self._month_access_token
         }
@@ -157,7 +158,6 @@ class RequestHandler:
             return None
 
     def get_chapter_images_by_id(self, chapter_id, width=600, height=800,quality_mode="data"):
-        # print(chapter_id)
         chapter_images = []
         chapter_response = requests.get(f"{self.mangadex_url_base}/chapter/{chapter_id}")
         if chapter_response.status_code == 200:
@@ -165,8 +165,9 @@ class RequestHandler:
             hash = attributes["hash"]
             at_home_ids = attributes[quality_mode]
 
+            # Should contain the base_url for the image server
             at_home_response = requests.get(f"{self.mangadex_url_base}/at-home/server/{chapter_id}")
-            # print(at_home_response.json())
+
             if at_home_response.status_code == 200:
                 print("Fetching images")
                 for chapter_image_filename in at_home_ids:
@@ -183,7 +184,8 @@ class RequestHandler:
                         
                         original_size_img = ImageTk.PhotoImage(pre_processed_img)
                         num_bytes = original_size_img.width() * original_size_img.height()
-
+                        
+                        # Resize image to fit within confines of MangaViewer
                         image = ImageTk.PhotoImage(pre_processed_img.resize((width, height), Image.ANTIALIAS))
                         chapter_images.append(image)
                     end_time = int(time.time() * 1000)
@@ -209,9 +211,3 @@ class RequestHandler:
         else:
             print(f"Error fetching chapter from id: Error Code: {chapter_response.status_code}")
         return chapter_images
-
-
-if __name__ == "__main__":
-    profile = RequestHandler()
-    profile.get_user_followed_manga_list()
-    print(profile.followed_titles)

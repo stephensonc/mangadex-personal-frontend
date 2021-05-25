@@ -3,8 +3,10 @@ from UserInfoFrame import UserInfoFrame
 from RequestHandler import RequestHandler
 
 class MainWindow(tk.Tk):
-    def __init__(self, minsize=(900,950)):
+    def __init__(self, minsize=(900,950), bg="grey"):
         super(MainWindow, self).__init__()
+        # Set background color
+        self.config(bg=bg)
         self.title("MangaDex Portal")
         self.minsize(minsize[0], minsize[1])
 
