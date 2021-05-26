@@ -1,6 +1,4 @@
 import time
-import sys
-from requests.models import Response
 import os
 import yaml
 from PIL import ImageTk, Image
