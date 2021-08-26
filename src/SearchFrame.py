@@ -54,7 +54,11 @@ class SearchFrame(tk.Frame):
         self.entry_bar['values'] = [entry for entry in self.manga_titles if self.search_query.get() in entry]
     
     def get_search_list(self, *args):
-        titles = [manga["data"]["attributes"]["title"]["en"] for manga in self.manga_list]
+        # Debug
+        # for manga in self.manga_list:
+        #     print(manga["data"]["attributes"]["title"])
+        pre_filter_title_list = [manga["data"]["attributes"]["title"] for manga in self.manga_list]
+        titles = [manga_title["en"] for manga_title in pre_filter_title_list if "en" in manga_title.keys()]
         return titles
 
     def fetch_search_results_from_query(self, *args):
