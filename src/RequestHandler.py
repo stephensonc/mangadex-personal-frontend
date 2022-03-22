@@ -3,6 +3,7 @@ import os
 import yaml
 from PIL import ImageTk, Image
 import requests
+import Manga
 
 
 class RequestHandler:
@@ -115,11 +116,18 @@ class RequestHandler:
             self.refresh_session()
             response = requests.get(self.mangadex_url_base + "/user/follows/manga", headers=self._headers)
         if response.status_code == 200:
-            self.follows_list = response.json()["results"]
-            condensed_follows = {}
-            for manga in self.follows_list:
-                condensed_follows.update({manga["data"]["attributes"]["title"]["en"]:{"id": manga["data"]["id"]}})
-            return condensed_follows
+            try:
+                print(response.json().keys())
+                self.follows_list = response.json()["data"]
+                condensed_follows = {}
+                for manga in self.follows_list:
+                    condensed_follows.update({manga["data"]["attributes"]["title"]["en"]:{"id": manga["data"]["id"]}})
+                return condensed_follows
+            except KeyError as e:
+                return {
+                    "Error": e.with_traceback
+                }
+                
         else:
             print(f"Error fetching follows list: Error code {response.status_code}")
     
@@ -224,6 +232,6 @@ class RequestHandler:
                 params.update({arg: arg_list[arg]})
         response = requests.get(f"{self.mangadex_url_base}/manga", params=params)
         if response.status_code == 200:
-            return response.json()["results"]
+            return response.json()["data"]
         else:
             return []
