@@ -2,8 +2,10 @@ import tkinter as tk
 from SearchFrame import SearchFrame
 from UserInfoFrame import UserInfoFrame
 from RequestHandler import RequestHandler
+from CredentialManager import CredentialManager
 
 class MainWindow(tk.Tk):
+    
     def __init__(self, minsize=(900,950), bg="grey"):
         super(MainWindow, self).__init__()
         # Set background color
@@ -11,85 +13,10 @@ class MainWindow(tk.Tk):
         self.title("MangaDex Portal")
         self.minsize(minsize[0], minsize[1])
 
-        self._username = ""
-        self._password = ""
-        self._client_id = ""
-        self._client_secret = ""
-        self.request_handler = self.set_up_request_handler()
-
+        self.request_handler = RequestHandler(credential_manager=CredentialManager(file="auth_testing.yml"))
         self.user_info_frame = UserInfoFrame(self.request_handler, self)
         self.search_frame = SearchFrame(self.request_handler, self)
         self.create_menu_bar()
-
-
-    def set_up_request_handler(self):
-        request_handler = RequestHandler()
-
-        if not request_handler.config_exists():
-            # Prompt user for credentials
-            self.prompt_for_credentials()
-            request_handler.set_user_credentials(self._username, self._password, self._client_id, self._client_secret)
-        else:
-            config_data = request_handler.get_data_from_config()
-            request_handler.set_user_credentials(
-                config_data["user_credentials"]["username"],
-                config_data["user_credentials"]["password"],
-                config_data["user_credentials"]["client_id"],
-                config_data["user_credentials"]["client_secret"]
-            )
-        
-        request_handler.refresh_session()
-        return request_handler
-
-    def prompt_for_credentials(self):
-       
-       # Create new window
-        window = tk.Toplevel()
-        window.title("Login")
-        window.minsize(100, 50)
-        window.attributes('-topmost', True)
-        window.update()
-
-        left_frame = tk.Frame(window)
-        left_frame.pack(side="left")
-        right_frame = tk.Frame(window)
-        right_frame.pack(side="right")
-
-        username_field = tk.Entry(left_frame, width="20")
-        username_field.insert(0, "Username")
-        username_field.pack(side="top")
-
-        password_field = tk.Entry(left_frame, width="20")
-        password_field.insert(0, "Password")
-        password_field.pack(side="top")
-
-        client_id_field = tk.Entry(left_frame, width="20")
-        client_id_field.insert(0, "Client ID")
-        client_id_field.pack(side="top")
-
-        client_secret_field = tk.Entry(left_frame, width="20")
-        client_secret_field.insert(0, "Client Secret")
-        client_secret_field.pack(side="bottom")
-
-    
-        # Required global variables in order to get credentials on button press
-        self._prompt_window = window
-        self._username_field = username_field
-        self._password_field = password_field
-        self._client_id_field = client_id_field
-        self._client_secret_field = client_secret_field
-        submit_button = tk.Button(right_frame, text="Submit", command=self.obtain_credentials_from_prompt)
-        submit_button.pack(side="right")
-
-        self.wait_window(window)
-        return self._password
-    
-    def obtain_credentials_from_prompt(self):
-        self._username = self._username_field.get()
-        self._password = self._password_field.get()
-        self._client_id = self._client_id_field.get()
-        self._client_secret = self._client_secret_field.get()
-        self._prompt_window.destroy()
 
     def create_menu_bar(self):
         self.menu_bar = tk.Menu(self)
@@ -98,9 +25,9 @@ class MainWindow(tk.Tk):
         user_menu.add_command(label="Logout")
         self.menu_bar.add_cascade(label="Profile", menu=user_menu)
         self.menu_bar.add_command(label="Random Manga", command=self.open_random_manga)
+        self.menu_bar.add_cascade(label="Export", )
         self.menu_bar.add_command(label="Exit", command=self.destroy)
         self.config(menu=self.menu_bar)
-
 
     def open_random_manga(self):
         pass

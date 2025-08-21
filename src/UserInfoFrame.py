@@ -59,6 +59,8 @@ class UserInfoFrame(tk.Frame):
         request_list = self.request_handler.get_user_followed_manga_list(limit=limit)
         followed_manga = request_list
         offset=limit
+        if(request_list is None):
+            request_list ={}
         while len(request_list) == limit:
             request_list = self.request_handler.get_user_followed_manga_list(offset=offset)
             followed_manga.update(request_list)
