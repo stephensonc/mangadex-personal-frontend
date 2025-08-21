@@ -54,12 +54,18 @@ class SearchFrame(tk.Frame):
         self.entry_bar['values'] = [entry for entry in self.manga_titles if self.search_query.get() in entry]
     
     def get_search_list(self, *args):
-        titles = [manga["data"]["attributes"]["title"]["en"] for manga in self.manga_list]
+        titles = []
+        for manga in self.manga_list:
+            for t in manga["attributes"]["altTitles"]:
+                if "en" in t.keys():
+                    titles.append(t["en"])
+                    break
+        # titles = [manga["attributes"]["title"]["en"] for manga in self.manga_list]
         return titles
 
     def fetch_search_results_from_query(self, *args):
         self.query_results = self.request_handler.get_searchable_manga_list(limit=50, title=self.search_query.get())
-        query_results = [manga["data"]["attributes"]["title"]["en"] for manga in self.query_results]
+        query_results = [manga["attributes"]["title"]["en"] for manga in self.query_results]
         self.entry_bar["values"] = query_results
         self.create_results_widget() 
         for result in query_results:
@@ -67,13 +73,13 @@ class SearchFrame(tk.Frame):
 
     def open_manga_from_search(self, *args):
         for manga in self.manga_list:
-            if self.search_query.get() in manga["data"]["attributes"]["title"]["en"]:
-                manga_id = manga["data"]["id"]
+            if self.search_query.get() in manga["attributes"]["title"]["en"]:
+                manga_id = manga["id"]
                 manga_viewer = MangaViewer(request_handler=self.request_handler, manga_id=manga_id)
     
     def open_manga_from_results_box(self, *args):
         manga_title = self.results_box.get(self.results_box.curselection())
         for manga in self.query_results:
-            if manga_title == manga["data"]["attributes"]["title"]["en"]:
-                manga_id = manga["data"]["id"]
+            if manga_title == manga["attributes"]["title"]["en"]:
+                manga_id = manga["id"]
                 manga_viewer = MangaViewer(request_handler=self.request_handler, manga_id=manga_id)

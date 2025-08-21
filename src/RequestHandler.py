@@ -1,3 +1,4 @@
+import io
 import time
 import os
 import yaml
@@ -115,10 +116,10 @@ class RequestHandler:
             self.refresh_session()
             response = requests.get(self.mangadex_url_base + "/user/follows/manga", headers=self._headers)
         if response.status_code == 200:
-            self.follows_list = response.json()["results"]
+            self.follows_list = response.json()["data"]
             condensed_follows = {}
             for manga in self.follows_list:
-                condensed_follows.update({manga["data"]["attributes"]["title"]["en"]:{"id": manga["data"]["id"]}})
+                condensed_follows.update({manga["attributes"]["title"]["en"]:{"id": manga["id"]}})
             return condensed_follows
         else:
             print(f"Error fetching follows list: Error code {response.status_code}")
@@ -150,27 +151,28 @@ class RequestHandler:
 
         # print(response.request.path_url)
         if response.status_code == 200:
-            return response.json()["results"]
+            return response.json()["data"]
         else:
             print(response.json())
             return None
 
     def get_chapter_images_by_id(self, chapter_id, width=600, height=800,quality_mode="dataSaver"):
 
-        url_quality = quality_mode if quality_mode == "data" else "data-saver"
+        url_quality = quality_mode if quality_mode == "data" else "dataSaver"
 
         image_urls = []
         chapter_response = requests.get(f"{self.mangadex_url_base}/chapter/{chapter_id}")
         if chapter_response.status_code == 200:
             attributes = chapter_response.json()["data"]["attributes"]
-            hash = attributes["hash"]
-            at_home_ids = attributes[quality_mode]
+            #hash = attributes["hash"]
+            #at_home_ids = attributes[quality_mode]
             # Should contain the base_url for the image server
             at_home_response = requests.get(f"{self.mangadex_url_base}/at-home/server/{chapter_id}")
 
             if at_home_response.status_code == 200:
-                for chapter_image_filename in at_home_ids:
+                for chapter_image_filename in at_home_response.json()["chapter"][url_quality]:
                     at_home_base_url = at_home_response.json()["baseUrl"]
+                    hash = at_home_response.json()["chapter"]["hash"]
                     request_url = f"{at_home_base_url}/{url_quality}/{hash}/{chapter_image_filename}"
                     image_urls.append(request_url)
             else:
@@ -189,7 +191,10 @@ class RequestHandler:
         image = None
         num_bytes = 0
         if image_url_response.status_code == 200:
-            pre_processed_img = Image.open(requests.get(request_url, stream=True).raw)
+            #pre_processed_img = Image.open(requests.get(request_url, stream=True).raw)
+            resp = requests.get(request_url, stream=True)
+            dataBytes = io.BytesIO(resp)
+            pre_processed_img = Image.open(dataBytes)
             
             original_size_img = ImageTk.PhotoImage(pre_processed_img)
             num_bytes = original_size_img.width() * original_size_img.height()
@@ -224,6 +229,6 @@ class RequestHandler:
                 params.update({arg: arg_list[arg]})
         response = requests.get(f"{self.mangadex_url_base}/manga", params=params)
         if response.status_code == 200:
-            return response.json()["results"]
+            return response.json()["data"]
         else:
             return []

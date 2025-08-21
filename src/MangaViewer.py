@@ -91,7 +91,7 @@ class MangaViewer(tk.Toplevel):
 
         total_length = 0
         for chapter in self.chapter_list:
-            chap_attributes = chapter["data"]["attributes"]
+            chap_attributes = chapter["attributes"]
             chap_num_and_title = f"{chap_attributes['chapter']} {chap_attributes['title']}"
 
             total_length += len(chap_num_and_title)
@@ -125,15 +125,15 @@ class MangaViewer(tk.Toplevel):
         print(f"Current chapter number: {self.curr_chapter}")
 
         idx = len(self.chapter_list) - 1
-        while idx > 0 and float(self.chapter_list[idx]["data"]["attributes"]["chapter"]) <= self.curr_chapter:
+        while idx > 0 and float(self.chapter_list[idx]["attributes"]["chapter"]) <= self.curr_chapter:
             idx -= 1
-        next_chap_number = float(self.chapter_list[idx]["data"]["attributes"]["chapter"])
+        next_chap_number = float(self.chapter_list[idx]["attributes"]["chapter"])
         print(f"Next chapter number: {next_chap_number}")
         self.open_chapter_by_number(next_chap_number)
     
     def open_prev_chapter(self):
         for chap in self.chapter_list:
-            previous_chapter_number = float(chap["data"]["attributes"]["chapter"])
+            previous_chapter_number = float(chap["attributes"]["chapter"])
             print(self.curr_chapter)
             if previous_chapter_number < self.curr_chapter:
                 print(f"Next chapter number: {previous_chapter_number}")
@@ -142,22 +142,24 @@ class MangaViewer(tk.Toplevel):
 
     def open_chapter_by_number(self, number):
         """Create a canvas object containing the images in the chapter corresponding with the number"""
-        chapters_with_number = [chap for chap in self.chapter_list if float(chap["data"]["attributes"]["chapter"]) == number]
+        chapters_with_number = [chap for chap in self.chapter_list if float(chap["attributes"]["chapter"]) == number]
 
         chap_id = ""
         for chapter in chapters_with_number:
             for relationship in chapter["relationships"]:
                 if relationship["type"] == "scanlation_group":
                     group = relationship["id"]
+            if group is None:
+                group = "N/A"
 
             if self.scanlation_group is None:
                 self.scanlation_group = group
-                chap_id = chapter["data"]["id"]
+                chap_id = chapter["id"]
             elif self.scanlation_group != group and chapter == chapters_with_number[-1]:
                 self.scanlation_group = group
-                chap_id = chapter["data"]["id"]
+                chap_id = chapter["id"]
             elif self.scanlation_group == group:
-                chap_id = chapter["data"]["id"]
+                chap_id = chapter["id"]
             
         self.curr_chapter = number
         chapter_image_urls = self.request_handler.get_chapter_images_by_id(chap_id)
