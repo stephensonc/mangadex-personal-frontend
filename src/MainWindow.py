@@ -12,8 +12,8 @@ class MainWindow(tk.Tk):
         self.config(bg=bg)
         self.title("MangaDex Portal")
         self.minsize(minsize[0], minsize[1])
-
-        self.request_handler = RequestHandler(credential_manager=CredentialManager(file="auth_testing.yml"))
+        
+        self.request_handler = RequestHandler(credential_manager=CredentialManager())
         self.user_info_frame = UserInfoFrame(self.request_handler, self)
         self.search_frame = SearchFrame(self.request_handler, self)
         self.create_menu_bar()
