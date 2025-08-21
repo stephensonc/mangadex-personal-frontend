@@ -13,6 +13,8 @@ class MainWindow(tk.Tk):
 
         self._username = ""
         self._password = ""
+        self._client_id = ""
+        self._client_secret = ""
         self.request_handler = self.set_up_request_handler()
 
         self.user_info_frame = UserInfoFrame(self.request_handler, self)
@@ -26,10 +28,15 @@ class MainWindow(tk.Tk):
         if not request_handler.config_exists():
             # Prompt user for credentials
             self.prompt_for_credentials()
-            request_handler.set_user_credentials(self._username, self._password)
+            request_handler.set_user_credentials(self._username, self._password, self._client_id, self._client_secret)
         else:
             config_data = request_handler.get_data_from_config()
-            request_handler.set_user_credentials(config_data["user_credentials"]["username"], config_data["user_credentials"]["password"])
+            request_handler.set_user_credentials(
+                config_data["user_credentials"]["username"],
+                config_data["user_credentials"]["password"],
+                config_data["user_credentials"]["client_id"],
+                config_data["user_credentials"]["client_secret"]
+            )
         
         request_handler.refresh_session()
         return request_handler
@@ -54,12 +61,23 @@ class MainWindow(tk.Tk):
 
         password_field = tk.Entry(left_frame, width="20")
         password_field.insert(0, "Password")
-        password_field.pack(side="bottom")
+        password_field.pack(side="top")
 
+        client_id_field = tk.Entry(left_frame, width="20")
+        client_id_field.insert(0, "Client ID")
+        client_id_field.pack(side="top")
+
+        client_secret_field = tk.Entry(left_frame, width="20")
+        client_secret_field.insert(0, "Client Secret")
+        client_secret_field.pack(side="bottom")
+
+    
         # Required global variables in order to get credentials on button press
         self._prompt_window = window
         self._username_field = username_field
         self._password_field = password_field
+        self._client_id_field = client_id_field
+        self._client_secret_field = client_secret_field
         submit_button = tk.Button(right_frame, text="Submit", command=self.obtain_credentials_from_prompt)
         submit_button.pack(side="right")
 
@@ -69,6 +87,8 @@ class MainWindow(tk.Tk):
     def obtain_credentials_from_prompt(self):
         self._username = self._username_field.get()
         self._password = self._password_field.get()
+        self._client_id = self._client_id_field.get()
+        self._client_secret = self._client_secret_field.get()
         self._prompt_window.destroy()
 
     def create_menu_bar(self):

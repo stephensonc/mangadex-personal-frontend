@@ -4,3 +4,6 @@ __pycache__/
 # User credentials
 auth_config.yml
 config.yml
+
+# IDE files
+.vscode
