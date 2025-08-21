@@ -185,11 +185,20 @@ class RequestHandler:
             self.follows_list = response.json()["data"]
             condensed_follows = {}
             for manga in self.follows_list:
-                condensed_follows.update(
-                    {
+                condensed_manga = {}
+                try:
+                    condensed_manga = {
                         manga["attributes"]["title"]["en"]:{"id": manga["id"]}
                     }
-                )
+                except:
+                    first_available_language_title =""
+                    for key in manga["attributes"]["title"]:
+                        first_available_language_title = manga["attributes"]["title"][key]
+                        break
+                    condensed_manga = {
+                        first_available_language_title:{"id": manga["id"]}
+                    }
+                condensed_follows.update(condensed_manga)
             return condensed_follows
         else:
             print(f"Error fetching follows list: Error code {response.status_code}")

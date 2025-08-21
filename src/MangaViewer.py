@@ -16,8 +16,15 @@ class MangaViewer(tk.Toplevel):
 
         self.request_handler = request_handler
 
-        self.metadata = request_handler.get_manga_metadata_by_id(manga_id)        
-        self.manga_title = self.metadata["attributes"]["title"]["en"]
+        self.metadata = request_handler.get_manga_metadata_by_id(manga_id)
+        try:        
+            self.manga_title = self.metadata["attributes"]["title"]["en"]
+        except:
+            first_available_language_title =""
+            for key in self.metadata["attributes"]["title"]:
+                first_available_language_title = self.metadata["attributes"]["title"][key]
+                break
+            self.manga_title = first_available_language_title
         self.title(self.manga_title)
 
         self.scanlation_group = None
