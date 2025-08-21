@@ -176,11 +176,15 @@ class RequestHandler:
         return self._username
 
 
-    def get_user_followed_manga_list(self):
-        response = requests.get(self.mangadex_url_base + "/user/follows/manga", headers=self._headers)
+    def get_user_followed_manga_list(self, limit=100, offset=0):
+        request_data = {
+            "limit":limit,
+            "offset":offset
+        }
+        response = requests.get(self.mangadex_url_base + "/user/follows/manga", headers=self._headers, params=request_data)
         if response.status_code == 401:
             self.refresh_session()
-            response = requests.get(self.mangadex_url_base + "/user/follows/manga", headers=self._headers)
+            response = requests.get(self.mangadex_url_base + "/user/follows/manga", headers=self._headers, params=request_data)
         if response.status_code == 200:
             self.follows_list = response.json()["data"]
             condensed_follows = {}

@@ -55,8 +55,12 @@ class UserInfoFrame(tk.Frame):
         manga_viewer = MangaViewer(request_handler=self.request_handler, manga_id=manga_id)
 
 
-    def get_follows_from_profile(self):
-        followed_manga = self.request_handler.get_user_followed_manga_list()
-        # for manga in followed_manga:
-        #     print(followed_manga[manga]["id"])
+    def get_follows_from_profile(self, limit=100):
+        request_list = self.request_handler.get_user_followed_manga_list(limit=limit)
+        followed_manga = request_list
+        offset=limit
+        while len(request_list) == limit:
+            request_list = self.request_handler.get_user_followed_manga_list(offset=offset)
+            followed_manga.update(request_list)
+            offset+=limit
         return followed_manga
