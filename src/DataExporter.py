@@ -8,16 +8,16 @@ class DataExporter:
         self.credential_manager = self.request_handler.credential_manager
 
 
-    def export_follows_list(self, file="user_follows.txt"):
+    def export_follows_list(self, file="user_follows.txt", folder="exports"):
         print("Exporting follows list")
         follows_list = self.request_handler.get_user_followed_manga_list().keys()
-        with open(file, "w") as follows_file:
+        with open(folder+"/"+file, "w") as follows_file:
             follows_file.write('\n'.join(str(name) for name in follows_list))
         
-    def export_follows_json(self, file="user_follows.json"):
+    def export_follows_json(self, file="user_follows.json", folder="exports"):
         print("Exporting follows list")
         follows_list = self.request_handler.get_user_followed_manga_list()
-        with open(file, "w") as follows_file:
+        with open(folder+"/"+file, "w") as follows_file:
             follows_file.write(json.dumps(follows_list, indent=2))
 
 def main():
