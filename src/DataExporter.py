@@ -1,5 +1,6 @@
 import json 
 import os
+import tkinter as tk
 from tkinter import filedialog
 from RequestHandler import RequestHandler
 
@@ -21,6 +22,7 @@ class DataExporter:
             title += " as List"
         elif(file_format=="json"):
             title += " as JSON"
+
         filepath = self.prompt_for_export_file(
             title=title,
             initial_file="user_follows",
@@ -35,12 +37,18 @@ class DataExporter:
             initial_file+=file_extension
         
         os.makedirs(start_dir, exist_ok=True)
-        return filedialog.askopenfilename(
+        root = tk.Tk()
+        root.attributes('-topmost', True)
+        root.withdraw()
+        file_path = filedialog.askopenfilename(
+            parent=root,
             title=title,
             initialdir=start_dir,
             initialfile=initial_file,
             defaultextension=file_extension
         )
+        root.destroy()
+        return file_path
 
     def get_default_file_extension(self, file_format="list"):
         if("json" in file_format):
