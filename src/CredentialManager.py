@@ -1,10 +1,10 @@
-import os
+import os, sys
 import tkinter as tk
 
 import yaml
 
 class CredentialManager:
-    def __init__(self, file="auth_config.yml", username="", password="", client_id="", client_secret=""):
+    def __init__(self, file="auth_config.yml"):
         self._default_auth_config = {
             "user_credentials": {
                 "username": "",
@@ -15,19 +15,23 @@ class CredentialManager:
             "refresh_token": "",
             "access_token": ""
         }
+        self._should_quit = False
         self._cache_file = file
         self.refresh_token = ""
         self.access_token = ""
-        if username=="" or password=="" or client_id=="" or client_secret=="":
-            if not self.cache_exists():
-                self.prompt_for_credentials()
-            self.get_data_from_cache()
-        else:
-            self.username = username
-            self.password = password
-            self.client_id = client_id
-            self.client_secret = client_secret
-            self.cache_credentials()
+        self.fetch_credentials()
+
+    def fetch_credentials(self):
+        if not self.cache_exists():
+            self.prompt_for_credentials()
+            if(self._should_quit):
+                sys.exit()
+        self.get_data_from_cache()
+
+    def handle_cred_close(self):
+        self._prompt_window.destroy()
+        print("Login process aborted, quitting program")
+        self._should_quit=True
 
     def prompt_for_credentials(self, lastFailed=False):
        # Create new window
@@ -35,6 +39,7 @@ class CredentialManager:
         window.title("Login")
         window.minsize(200, 100)
         window.attributes('-topmost', True)
+        window.protocol("WM_DELETE_WINDOW", self.handle_cred_close)
         
         # window.update()
 
@@ -74,6 +79,7 @@ class CredentialManager:
         window.update()
         self._prompt_window = window
         self._prompt_window.wait_window()
+        return self._should_quit
 
     def get_credentials_from_prompt(self):
         self.username = self._username_field.get()
