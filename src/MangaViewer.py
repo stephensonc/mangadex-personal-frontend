@@ -53,7 +53,7 @@ class MangaViewer(tk.Toplevel):
 
         self.canvas_scrollbar = tk.Scrollbar(self.view_frame, orient=tk.VERTICAL, command=self.view_pane.yview)
         self.view_pane.config(yscrollcommand=self.canvas_scrollbar.set)
-        self.canvas_scrollbar.pack(side="right")
+        self.canvas_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.view_pane.pack(side="top")
         self.view_pane.bind('<Enter>', self._bind_to_mousewheel)
         self.view_pane.bind('<Leave>', self._unbind_to_mousewheel)
@@ -86,14 +86,26 @@ class MangaViewer(tk.Toplevel):
             if(pre_processed_img is None):
                 print("Failed to find image in cache or on server")
                 return
-            # Resize image to fit within confines of MangaViewer
-            image = ImageTk.PhotoImage(pre_processed_img.resize((self.canvas_width, self.canvas_height), Image.LANCZOS))                
-            self.images_list.append(image)
-            # print(f"Adding image: {idx} of {len(image_url_list)}")
-            self.view_pane.create_image(0, ycoord, anchor=NW,image=image)
-            ycoord = ycoord + image.height()
+            
+            ycoord = self.add_image_to_viewer(self.view_pane, ycoord, pre_processed_img)
             idx += 1
-        self.view_pane.config(scrollregion=self.view_pane.bbox("all"))
+
+    def add_image_to_viewer(self, canvas:tk.Canvas, ycoord, pre_processed_img):
+        # Resize image to fit within confines of MangaViewer
+        image = ImageTk.PhotoImage(pre_processed_img.resize((self.canvas_width, self.canvas_height), Image.LANCZOS))                
+        self.images_list.append(image)
+        # print(f"Adding image: {idx} of {len(image_url_list)}")
+        canvas.create_image(0, ycoord, anchor=NW,image=image)
+        self.updateScrollRegion(canvas=self.view_pane, view_frame=self.view_frame)
+        canvas.update()
+        # canvas.update_idletasks()
+        ycoord = ycoord + image.height()
+        return ycoord
+    
+    def updateScrollRegion(self, canvas: tk.Canvas, view_frame: tk.Frame):
+        canvas.update_idletasks()
+        canvas.config(scrollregion=canvas.bbox(tk.ALL))
+        
         
 
     def cache_image(self, imageBytes, image_file_path:str):

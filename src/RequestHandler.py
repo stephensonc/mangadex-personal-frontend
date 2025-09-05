@@ -195,7 +195,7 @@ class RequestHandler:
 
 
     def get_single_chapter_image_bytes_by_url(self, request_url):
-        image_url_response = requests.get(request_url)
+        image_url_response = requests.get(request_url, stream=True)
         start_time = int(time.time() * 1000)
         
         returned_bytes = None
