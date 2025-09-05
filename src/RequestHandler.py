@@ -215,16 +215,17 @@ class RequestHandler:
             "duration": time_elapsed
         }  
         # Provide feedback to the at-home source
+        # Commented due to deprecation
         report_url = f"https://api.mangadex.network/report"
-        report_response = requests.post(report_url, json=report_json)
-        if report_response.status_code != 200:
-            print(report_response.status_code)
+        # report_response = requests.post(report_url, json=report_json)
+        # if report_response.status_code != 200:
+        #     print(report_response.status_code)
         return returned_bytes
 
     def get_searchable_manga_list(self, title=None, authors=None, artists=None, year=None, includedTags=None, includedTagsMode=None, limit=100):
         arg_list = locals()
         arg_list.pop("self")
-        args = arg_list.keys()
+        args = [k for k,v in arg_list.items()]
         params = {}
         for arg in args:
             if arg_list[arg] is not None:
