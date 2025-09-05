@@ -38,14 +38,15 @@ class UserInfoFrame(tk.Frame):
         self.submit_box.pack(side="top")
 
         self.follows_widget = tk.Listbox(self, width=50, height=40)
-        
         self.follows_scroll = tk.Scrollbar(self, orient=tk.VERTICAL, command=self.follows_widget.yview)
-        self.follows_widget.config(yscrollcommand=self.follows_scroll.set)
-        self.follows_scroll.pack(side="right")
 
         for element in self.followed_manga.keys():
             self.follows_widget.insert(END, element)
-        self.follows_widget.pack(side="bottom")
+        
+        self.follows_widget.pack(side=tk.LEFT)
+        self.follows_scroll.pack(side=tk.RIGHT, fill=tk.BOTH)
+        self.follows_widget.config(yscrollcommand=self.follows_scroll.set)
+        
         # self.follows_widget.bind('<<ListboxSelect>>', self.open_followed_manga)
 
     def open_followed_manga(self, event=None):
