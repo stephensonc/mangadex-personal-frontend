@@ -7,3 +7,6 @@ config.yml
 
 # IDE files
 .vscode
+
+# Data files
+exports/
