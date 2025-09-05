@@ -32,27 +32,30 @@ class UserInfoFrame(tk.Frame):
         self.submit_box.destroy()
         self.follows_label.destroy()
         self.follows_label = tk.Label(self, text=f"{self.request_handler.get_username()}'s followed manga:", relief=RAISED, font=("Arial", 25))
-        self.follows_label.pack(side="top")
+        self.follows_label.pack(side="top", fill=tk.X)
 
         self.submit_box = tk.Button(self, text="Open Selected Manga", command=self.open_followed_manga)
         self.submit_box.pack(side="top")
 
         self.follows_widget = tk.Listbox(self, width=50, height=40)
-        
         self.follows_scroll = tk.Scrollbar(self, orient=tk.VERTICAL, command=self.follows_widget.yview)
-        self.follows_widget.config(yscrollcommand=self.follows_scroll.set)
-        self.follows_scroll.pack(side="right")
 
         for element in self.followed_manga.keys():
             self.follows_widget.insert(END, element)
-        self.follows_widget.pack(side="bottom")
+        
+        self.follows_widget.pack(side=tk.LEFT)
+        self.follows_scroll.pack(side=tk.RIGHT, fill=tk.BOTH)
+        self.follows_widget.config(yscrollcommand=self.follows_scroll.set)
+        
         # self.follows_widget.bind('<<ListboxSelect>>', self.open_followed_manga)
 
     def open_followed_manga(self, event=None):
-        current_selection = self.follows_widget.get(self.follows_widget.curselection())
-        manga_id = self.followed_manga[current_selection]["id"]
-        # print(f"Opening manga: {current_selection} : {manga_id}")
-        manga_viewer = MangaViewer(request_handler=self.request_handler, manga_id=manga_id)
+        selected_index = self.follows_widget.curselection()
+        if(selected_index is not None and len(selected_index) > 0):
+            current_selection = self.follows_widget.get(selected_index)
+            manga_id = self.followed_manga[current_selection]["id"]
+            # print(f"Opening manga: {current_selection} : {manga_id}")
+            manga_viewer = MangaViewer(request_handler=self.request_handler, manga_id=manga_id)
 
 
     def get_follows_from_profile(self, limit=100):

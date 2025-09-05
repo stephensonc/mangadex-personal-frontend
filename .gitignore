@@ -10,3 +10,4 @@ config.yml
 
 # Data files
 exports/
+cached_images/
