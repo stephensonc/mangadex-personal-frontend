@@ -32,7 +32,7 @@ class UserInfoFrame(tk.Frame):
         self.submit_box.destroy()
         self.follows_label.destroy()
         self.follows_label = tk.Label(self, text=f"{self.request_handler.get_username()}'s followed manga:", relief=RAISED, font=("Arial", 25))
-        self.follows_label.pack(side="top")
+        self.follows_label.pack(side="top", fill=tk.X)
 
         self.submit_box = tk.Button(self, text="Open Selected Manga", command=self.open_followed_manga)
         self.submit_box.pack(side="top")

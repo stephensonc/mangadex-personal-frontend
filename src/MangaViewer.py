@@ -33,37 +33,46 @@ class MangaViewer(tk.Toplevel):
 
         self.scanlation_group = None
         self.curr_chapter = None
+        self.curr_chapter_name = ""
 
         self.cache_folder = "cached_images/"+(self.manga_title.replace('/','_').replace(' ', '_'))
+
+        self.chapter_list = request_handler.get_manga_chapter_list_by_id(manga_id)
+        self.create_chapter_listbox()
 
         self.canvas_width = 600
         self.canvas_height = 800
         self.view_frame = tk.Frame(self)
         self.create_viewer_canvas()
-        
-        self.chapter_list = request_handler.get_manga_chapter_list_by_id(manga_id)
-        self.create_chapter_listbox()
 
-    def create_viewer_canvas(self, image_url_list=[]):
+    def create_viewer_canvas(self, image_url_list=[], chapter_name=""):
         self.view_frame.destroy()
         self.view_frame = tk.Frame(self)
-        self.view_frame.pack(side="right")
+        self.view_frame.pack(side=tk.RIGHT, fill=tk.Y)
 
-        self.view_pane = tk.Canvas(self.view_frame, height=self.canvas_height, width=self.canvas_width, bg='grey')
+        chapter_title_text = ""
+        if(self.curr_chapter is None):
+            chapter_title_text = self.curr_chapter_name
+        elif(self.curr_chapter_name is None):
+            chapter_title_text = str(self.curr_chapter)
+        else:
+            chapter_title_text =  str(self.curr_chapter) + ": " + self.curr_chapter_name
 
+        self.chapter_label=tk.Label(self.view_frame, text=chapter_title_text, relief=RAISED, font=("Arial", 25))
+        self.chapter_label.pack(side=tk.TOP, fill=tk.X)
+        self.view_pane = tk.Canvas(self.view_frame, bg='grey', height=self.canvas_height, width=self.canvas_width)
+        nav_button_frame = tk.Frame(self.view_frame)
+        prev_button = tk.Button(nav_button_frame, text="Prev", command=self.open_prev_chapter)
+        next_button = tk.Button(nav_button_frame, text="Next", command=self.open_next_chapter)
         self.canvas_scrollbar = tk.Scrollbar(self.view_frame, orient=tk.VERTICAL, command=self.view_pane.yview)
+        
         self.view_pane.config(yscrollcommand=self.canvas_scrollbar.set)
         self.canvas_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        self.view_pane.pack(side="top")
-        self.view_pane.bind('<Enter>', self._bind_to_mousewheel)
-        self.view_pane.bind('<Leave>', self._unbind_to_mousewheel)
-
-        nav_button_frame = tk.Frame(self.view_frame)
-        nav_button_frame.pack(side="bottom")
-        next_button = tk.Button(nav_button_frame, text="Next", command=self.open_next_chapter)
-        next_button.pack(side="right")
-        prev_button = tk.Button(nav_button_frame, text="Prev", command=self.open_prev_chapter)
-        prev_button.pack(side="left")
+        self.view_pane.pack(side=tk.TOP, fill=tk.BOTH)
+         
+        nav_button_frame.pack(side=tk.BOTTOM, expand=False)
+        prev_button.pack(side=tk.LEFT, expand=True)
+        next_button.pack(side=tk.RIGHT, expand=True)
 
         self.images_list = []
         idx = 1
@@ -96,15 +105,15 @@ class MangaViewer(tk.Toplevel):
         self.images_list.append(image)
         # print(f"Adding image: {idx} of {len(image_url_list)}")
         canvas.create_image(0, ycoord, anchor=NW,image=image)
-        self.updateScrollRegion(canvas=self.view_pane, view_frame=self.view_frame)
-        canvas.update()
-        # canvas.update_idletasks()
+        self.updateScrollRegion(canvas=self.view_pane)
         ycoord = ycoord + image.height()
         return ycoord
     
-    def updateScrollRegion(self, canvas: tk.Canvas, view_frame: tk.Frame):
+    def updateScrollRegion(self, canvas: tk.Canvas):
         canvas.update_idletasks()
         canvas.config(scrollregion=canvas.bbox(tk.ALL))
+        canvas.update()
+        canvas.update_idletasks()
         
         
 
@@ -119,10 +128,10 @@ class MangaViewer(tk.Toplevel):
 
     def create_chapter_listbox(self):
         self.control_frame = tk.Frame(self)
-        self.control_frame.pack(side="left")
+        self.control_frame.pack(side="left", fill=tk.Y)
 
-        title_label = tk.Label(self.control_frame, text=self.manga_title, font=("Arial", 15, "normal"), relief=RAISED, wraplength=400, height=2)
-        title_label.pack(side="top")
+        title_label = tk.Label(self.control_frame, text=self.manga_title, font=("Arial", 15), relief=RAISED, wraplength=400, height=2)
+        title_label.pack(side=tk.TOP, fill=tk.X)
 
         # desc = self.metadata["attributes"]["description"]["en"]
         # english_desc = desc[re.search(r"\[b\]\[u\]English\:\[\/u\]\[\/b\]", desc).end() : re.search(r"\[hr\]", desc).start()]
@@ -134,7 +143,7 @@ class MangaViewer(tk.Toplevel):
         chapter_list_label = tk.Label(self.control_frame, text="Chapter list:", relief=RAISED, font=("Arial", 25))
         chapter_list_label.pack(side="top")
 
-        self.chapter_listbox = tk.Listbox(self.control_frame, height=40)
+        self.chapter_listbox = tk.Listbox(self.control_frame)
 
         total_length = 0
         for chapter in self.chapter_list:
@@ -149,22 +158,26 @@ class MangaViewer(tk.Toplevel):
         self.chapter_listbox.config(width=avg_len)
         
         self.chapter_scroll = tk.Scrollbar(self.control_frame, orient=tk.VERTICAL, command=self.chapter_listbox.yview)
-        self.chapter_scroll.pack(side="right")
+        self.chapter_scroll.pack(side="right", fill=tk.Y)
         self.chapter_x_scroll = tk.Scrollbar(self.control_frame, orient=tk.HORIZONTAL, command=self.chapter_listbox.xview)
-        self.chapter_x_scroll.pack(side="bottom")
+        self.chapter_x_scroll.pack(side="bottom", fill=tk.X)
 
         self.chapter_listbox.config(yscrollcommand=self.chapter_scroll.set)
         self.chapter_listbox.config(xscrollcommand=self.chapter_x_scroll.set)
         # self.chapter_listbox.bind("<<ListboxSelect>>", self.open_chapter_from_box)
-        self.chapter_listbox.pack(side="bottom")
-
+        
         chapter_select_button = tk.Button(self.control_frame, text="Open Selected Chapter", command=self.open_chapter_from_box)
-        chapter_select_button.pack()
+        chapter_select_button.pack(side=tk.TOP)
+        self.chapter_listbox.pack(side=tk.TOP, fill=tk.Y, expand=True)
+
+
 
 
     def open_chapter_from_box(self, event=None):
         chapter_title = self.chapter_listbox.get(self.chapter_listbox.curselection())
         chapter_number = float(chapter_title[0:re.search(r" ", chapter_title).start()])
+        if(str(chapter_number).endswith(".0")):
+            chapter_number = int(chapter_number)
         self.open_chapter_by_number(number=chapter_number)
 
     def open_next_chapter(self):
@@ -192,12 +205,14 @@ class MangaViewer(tk.Toplevel):
 
         chap_id = ""
         group = None
+        title = ""
         for chapter in chapters_with_number:
             for relationship in chapter["relationships"]:
                 if relationship["type"] == "scanlation_group":
                     group = relationship["id"]
             if group is None:
                 group = "N/A"
+            title = chapter["attributes"]["title"]
 
             if self.scanlation_group is None:
                 self.scanlation_group = group
@@ -208,20 +223,11 @@ class MangaViewer(tk.Toplevel):
             elif self.scanlation_group == group:
                 chap_id = chapter["id"]
             
+            
         self.curr_chapter = number
+        self.curr_chapter_name = title
         chapter_image_urls = self.request_handler.get_chapter_image_urls_by_id(chap_id)
-        self.create_viewer_canvas(chapter_image_urls)
-        
-
-    def _bind_to_mousewheel(self, event):
-        self.view_pane.bind_all("<MouseWheel>", self._on_mousewheel)
-    
-    def _unbind_to_mousewheel(self, event):
-        self.view_pane.unbind_all("<MouseWheel>")
-    
-    def _on_mousewheel(self, event):
-        self.view_pane.yview_scroll(int(-1*(event.delta/120)), "units")
-
+        self.create_viewer_canvas(chapter_image_urls, self.curr_chapter_name)
 
         
         
