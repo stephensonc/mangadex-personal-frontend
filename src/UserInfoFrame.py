@@ -49,10 +49,12 @@ class UserInfoFrame(tk.Frame):
         # self.follows_widget.bind('<<ListboxSelect>>', self.open_followed_manga)
 
     def open_followed_manga(self, event=None):
-        current_selection = self.follows_widget.get(self.follows_widget.curselection())
-        manga_id = self.followed_manga[current_selection]["id"]
-        # print(f"Opening manga: {current_selection} : {manga_id}")
-        manga_viewer = MangaViewer(request_handler=self.request_handler, manga_id=manga_id)
+        selected_index = self.follows_widget.curselection()
+        if(selected_index is not None and len(selected_index) > 0):
+            current_selection = self.follows_widget.get(selected_index)
+            manga_id = self.followed_manga[current_selection]["id"]
+            # print(f"Opening manga: {current_selection} : {manga_id}")
+            manga_viewer = MangaViewer(request_handler=self.request_handler, manga_id=manga_id)
 
 
     def get_follows_from_profile(self, limit=100):

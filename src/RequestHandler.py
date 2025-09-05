@@ -1,6 +1,5 @@
-import io
 import time
-from PIL import ImageTk, Image
+
 import requests
 from CredentialManager import CredentialManager
 
@@ -14,7 +13,12 @@ class RequestHandler:
         self._headers = self.update_headers(self.credential_manager.access_token)
         self.mangadex_url_base = "https://api.mangadex.org"
         self.mangadex_auth_url = "https://auth.mangadex.org"
-        self.refresh_session()
+        try:
+            self.refresh_session()
+        except:
+            print("Failed to connect to MangaDex, please check your internet connection")
+            quit(1)
+            
 
     def check_api_status(self) -> bool:
         """Verify that the api auth system is online."""
@@ -72,6 +76,7 @@ class RequestHandler:
             "client_id": self.credential_manager.client_id,
             "client_secret": self.credential_manager.client_secret
         }
+        response = None
         response = requests.post(self.mangadex_auth_url + "/realms/mangadex/protocol/openid-conect/token", data=request_data)
         if response.status_code == 200:
             print(response.status_code)
@@ -165,21 +170,18 @@ class RequestHandler:
             print(response.json())
             return None
 
-    def get_chapter_images_by_id(self, chapter_id, width=600, height=800,quality_mode="dataSaver"):
+    def get_chapter_image_urls_by_id(self, chapter_id, quality_mode="dataSaver"):
 
-        url_quality = quality_mode if quality_mode == "data" else "dataSaver"
+        url_quality = quality_mode if quality_mode == "data" else "data-saver"
 
         image_urls = []
         chapter_response = requests.get(f"{self.mangadex_url_base}/chapter/{chapter_id}")
         if chapter_response.status_code == 200:
-            attributes = chapter_response.json()["data"]["attributes"]
-            #hash = attributes["hash"]
-            #at_home_ids = attributes[quality_mode]
             # Should contain the base_url for the image server
             at_home_response = requests.get(f"{self.mangadex_url_base}/at-home/server/{chapter_id}")
 
             if at_home_response.status_code == 200:
-                for chapter_image_filename in at_home_response.json()["chapter"][url_quality]:
+                for chapter_image_filename in at_home_response.json()["chapter"][quality_mode]:
                     at_home_base_url = at_home_response.json()["baseUrl"]
                     hash = at_home_response.json()["chapter"]["hash"]
                     request_url = f"{at_home_base_url}/{url_quality}/{hash}/{chapter_image_filename}"
@@ -192,24 +194,16 @@ class RequestHandler:
         return image_urls
 
 
-    def get_single_chapter_image_by_url(self, request_url, width=600, height=800):
+    def get_single_chapter_image_bytes_by_url(self, request_url):
         image_url_response = requests.get(request_url)
-        # print(f"Fetching image from url: {request_url}")
-        
         start_time = int(time.time() * 1000)
-        image = None
+        
+        returned_bytes = None
         num_bytes = 0
         if image_url_response.status_code == 200:
-            #pre_processed_img = Image.open(requests.get(request_url, stream=True).raw)
-            resp = requests.get(request_url, stream=True)
-            dataBytes = io.BytesIO(resp)
-            pre_processed_img = Image.open(dataBytes)
-            
-            original_size_img = ImageTk.PhotoImage(pre_processed_img)
-            num_bytes = original_size_img.width() * original_size_img.height()
-            
-            # Resize image to fit within confines of MangaViewer
-            image = ImageTk.PhotoImage(pre_processed_img.resize((width, height), Image.ANTIALIAS))
+            num_bytes = len(image_url_response.content)
+            returned_bytes = image_url_response.content
+                
         end_time = int(time.time() * 1000)
         time_elapsed = end_time - start_time
 
@@ -225,8 +219,7 @@ class RequestHandler:
         report_response = requests.post(report_url, json=report_json)
         if report_response.status_code != 200:
             print(report_response.status_code)
-        
-        return image
+        return returned_bytes
 
     def get_searchable_manga_list(self, title=None, authors=None, artists=None, year=None, includedTags=None, includedTagsMode=None, limit=100):
         arg_list = locals()

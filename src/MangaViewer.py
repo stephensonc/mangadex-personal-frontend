@@ -1,12 +1,16 @@
+from pathlib import Path
 import tkinter as tk
-import html
+from PIL import ImageTk, Image
+import traceback
+from RequestHandler import RequestHandler
 from tkinter.constants import END, NE, NW, RAISED
 import math
 import re
+import os
 
 class MangaViewer(tk.Toplevel):
 
-    def __init__(self, request_handler, manga_id, bg="grey"):
+    def __init__(self, request_handler: RequestHandler, manga_id, bg="grey"):
         super(MangaViewer, self).__init__()
         # Set background color
         self.config(bg=bg)
@@ -30,12 +34,12 @@ class MangaViewer(tk.Toplevel):
         self.scanlation_group = None
         self.curr_chapter = None
 
+        self.cache_folder = "cached_images/"+self.manga_title
 
         self.canvas_width = 600
         self.canvas_height = 800
         self.view_frame = tk.Frame(self)
         self.create_viewer_canvas()
-        
         
         self.chapter_list = request_handler.get_manga_chapter_list_by_id(manga_id)
         self.create_chapter_listbox()
@@ -54,7 +58,6 @@ class MangaViewer(tk.Toplevel):
         self.view_pane.bind('<Enter>', self._bind_to_mousewheel)
         self.view_pane.bind('<Leave>', self._unbind_to_mousewheel)
 
-
         nav_button_frame = tk.Frame(self.view_frame)
         nav_button_frame.pack(side="bottom")
         next_button = tk.Button(nav_button_frame, text="Next", command=self.open_next_chapter)
@@ -63,19 +66,43 @@ class MangaViewer(tk.Toplevel):
         prev_button.pack(side="left")
 
         self.images_list = []
-        if image_url_list !=[]:
-            idx = 1
-            ycoord = 0
-            for image_url in image_url_list:
-                print(f"Retrieving image: {idx} of {len(image_url_list)}")
-                image = self.request_handler.get_single_chapter_image_by_url(image_url)
-                self.images_list.append(image)
-                print(f"Adding image: {idx} of {len(image_url_list)}")
-                self.view_pane.create_image(0, ycoord, anchor=NW,image=image)
-                ycoord = ycoord + image.height()
-                idx += 1
+        idx = 1
+        ycoord = 0
+        for image_url in image_url_list:
+            print(f"Retrieving image: {idx} of {len(image_url_list)}")
+            image_path, file_extension = os.path.splitext(image_url)
+            cached_filename = image_path[image_path.rindex("/"):image_path.rindex("-")]+file_extension
+            cached_filepath = self.cache_folder+"/"+self.curr_chapter+"/"+cached_filename
+            pre_processed_img = None
+
+            # Use cached file if it exists  
+            if(os.path.exists(cached_filepath)):
+                pre_processed_img = Image.open(cached_filepath)
+            else:
+                image_bytes = self.request_handler.get_single_chapter_image_bytes_by_url(image_url)
+                pre_processed_img = Image.open(self.cache_image(image_bytes, cached_filepath))
+            
+            if(pre_processed_img is None):
+                print("Failed to find image in cache or on server")
+                return
+            # Resize image to fit within confines of MangaViewer
+            image = ImageTk.PhotoImage(pre_processed_img.resize((self.canvas_width, self.canvas_height), Image.LANCZOS))                
+            self.images_list.append(image)
+            print(f"Adding image: {idx} of {len(image_url_list)}")
+            self.view_pane.create_image(0, ycoord, anchor=NW,image=image)
+            ycoord = ycoord + image.height()
+            idx += 1
         self.view_pane.config(scrollregion=self.view_pane.bbox("all"))
         
+
+    def cache_image(self, imageBytes, image_file_path:str):
+        try:
+            os.makedirs(image_file_path[:image_file_path.rindex("/")], exist_ok=True)
+            with open(image_file_path, "wb") as tmp_img_file:
+                tmp_img_file.write(imageBytes)
+        except:
+            print("Failed to cache chapter image:\n"+traceback.format_exc())
+        return image_file_path
 
     def create_chapter_listbox(self):
         self.control_frame = tk.Frame(self)
@@ -124,7 +151,6 @@ class MangaViewer(tk.Toplevel):
 
     def open_chapter_from_box(self, event=None):
         chapter_title = self.chapter_listbox.get(self.chapter_listbox.curselection())
-
         chapter_number = float(chapter_title[0:re.search(r" ", chapter_title).start()])
         self.open_chapter_by_number(number=chapter_number)
 
@@ -152,6 +178,7 @@ class MangaViewer(tk.Toplevel):
         chapters_with_number = [chap for chap in self.chapter_list if float(chap["attributes"]["chapter"]) == number]
 
         chap_id = ""
+        group = None
         for chapter in chapters_with_number:
             for relationship in chapter["relationships"]:
                 if relationship["type"] == "scanlation_group":
@@ -169,7 +196,7 @@ class MangaViewer(tk.Toplevel):
                 chap_id = chapter["id"]
             
         self.curr_chapter = number
-        chapter_image_urls = self.request_handler.get_chapter_images_by_id(chap_id)
+        chapter_image_urls = self.request_handler.get_chapter_image_urls_by_id(chap_id)
         self.create_viewer_canvas(chapter_image_urls)
         
 
