@@ -34,7 +34,7 @@ class MangaViewer(tk.Toplevel):
         self.scanlation_group = None
         self.curr_chapter = None
 
-        self.cache_folder = "cached_images/"+self.manga_title
+        self.cache_folder = "cached_images/"+(self.manga_title.replace('/','_').replace(' ', '_'))
 
         self.canvas_width = 600
         self.canvas_height = 800
@@ -69,10 +69,11 @@ class MangaViewer(tk.Toplevel):
         idx = 1
         ycoord = 0
         for image_url in image_url_list:
-            print(f"Retrieving image: {idx} of {len(image_url_list)}")
+            # print(f"Retrieving image: {idx} of {len(image_url_list)}")
             image_path, file_extension = os.path.splitext(image_url)
             cached_filename = image_path[image_path.rindex("/"):image_path.rindex("-")]+file_extension
-            cached_filepath = self.cache_folder+"/"+self.curr_chapter+"/"+cached_filename
+            sanitized_chapter = str(self.curr_chapter).replace('.','_')
+            cached_filepath = self.cache_folder+"/"+sanitized_chapter+"/"+cached_filename
             pre_processed_img = None
 
             # Use cached file if it exists  
@@ -88,7 +89,7 @@ class MangaViewer(tk.Toplevel):
             # Resize image to fit within confines of MangaViewer
             image = ImageTk.PhotoImage(pre_processed_img.resize((self.canvas_width, self.canvas_height), Image.LANCZOS))                
             self.images_list.append(image)
-            print(f"Adding image: {idx} of {len(image_url_list)}")
+            # print(f"Adding image: {idx} of {len(image_url_list)}")
             self.view_pane.create_image(0, ycoord, anchor=NW,image=image)
             ycoord = ycoord + image.height()
             idx += 1
