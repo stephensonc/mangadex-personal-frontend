@@ -1,5 +1,4 @@
 import time
-
 import requests
 from CredentialManager import CredentialManager
 
@@ -106,42 +105,59 @@ class RequestHandler:
     def get_username(self):
         return self.credential_manager.username
 
-
-    def get_user_followed_manga_list(self, limit=100, offset=0):
+    def get_chunk_of_follows(self, limit=100, offset=0):
         request_data = {
-            "limit":limit,
-            "offset":offset
+            "limit": limit,
+            "offset": offset
         }
-        response = requests.get(self.mangadex_url_base + "/user/follows/manga", headers=self._headers, params=request_data)
+        response = requests.get(self.mangadex_url_base + "/user/follows/manga", headers=self._headers,
+                                params=request_data)
         if response.status_code == 401:
             self.refresh_session()
-            response = requests.get(self.mangadex_url_base + "/user/follows/manga", headers=self._headers, params=request_data)
+            response = requests.get(self.mangadex_url_base + "/user/follows/manga", headers=self._headers,
+                                    params=request_data)
         if response.status_code == 200:
-            self.follows_list = response.json()["data"]
-            condensed_follows = {}
-            for manga in self.follows_list:
-                condensed_manga = {}
-                try:
-                    condensed_manga = {
-                        manga["attributes"]["title"]["en"]:{"id": manga["id"]}
-                    }
-                except:
-                    first_available_language_title =""
-                    for key in manga["attributes"]["title"]:
-                        first_available_language_title = manga["attributes"]["title"][key]
-                        break
-                    condensed_manga = {
-                        first_available_language_title:{"id": manga["id"]}
-                    }
-                condensed_follows.update(condensed_manga)
-            return condensed_follows
+            tmp_list = response.json()["data"]
+            manga_data = {}
+
+            for manga in tmp_list:
+                # get title
+                if "en" in manga["attributes"]["title"].keys():
+                    title = manga["attributes"]["title"]["en"]
+
+                else:
+                    for at in manga["attributes"]["altTitles"]:
+                        if "en" in at.keys():
+                            title = at["en"]
+                            break
+                    if title is None:
+                        lang = manga["attributes"]["title"].keys()[0]
+                        title = manga["attributes"]["title"][lang]
+                # print(f"Adding {title} to list from {manga["attributes"][]}")
+                manga_data.update({title: manga})
         else:
             print(f"Error fetching follows list: Error code {response.status_code}")
-    
+        return manga_data
+
+
+    def get_follows_from_profile(self, limit=100):
+        request_list = {}
+        remaining = limit
+        o = 0
+
+        while remaining > 0 :
+            l = min(100, remaining)
+            request_list.update(self.get_chunk_of_follows(offset=o, limit=l))
+            remaining -= l
+            o += l
+
+        return request_list
+
+
 
     # Begin Manga requests
 
-    def get_manga_metadata_by_id(self, manga_id):
+    def get_manga_by_id(self, manga_id):
         endpoint = f"{self.mangadex_url_base}/manga/{manga_id}"
         response = requests.get(endpoint)
         if "ok" in response.json()["result"]:
@@ -196,27 +212,29 @@ class RequestHandler:
 
     def get_single_chapter_image_bytes_by_url(self, request_url):
         image_url_response = requests.get(request_url, stream=True)
-        start_time = int(time.time() * 1000)
+        # start_time = int(time.time() * 1000)
         
         returned_bytes = None
-        num_bytes = 0
+        # num_bytes = 0
         if image_url_response.status_code == 200:
-            num_bytes = len(image_url_response.content)
+            # num_bytes = len(image_url_response.content)
             returned_bytes = image_url_response.content
+        else:
+            print("Failed to retrieve image: " + image_url_response)
                 
-        end_time = int(time.time() * 1000)
-        time_elapsed = end_time - start_time
+        # end_time = int(time.time() * 1000)
+        # time_elapsed = end_time - start_time
 
-        report_json = {
-            "url": request_url,
-            "success": image_url_response.status_code == 200,
-            "cached": "x-cache" in image_url_response.headers.keys() and "HIT" in image_url_response.headers["X-Cache"],
-            "bytes": num_bytes,
-            "duration": time_elapsed
-        }  
         # Provide feedback to the at-home source
         # Commented due to deprecation
-        report_url = f"https://api.mangadex.network/report"
+        # report_json = {
+        #     "url": request_url,
+        #     "success": image_url_response.status_code == 200,
+        #     "cached": "x-cache" in image_url_response.headers.keys() and "HIT" in image_url_response.headers["X-Cache"],
+        #     "bytes": num_bytes,
+        #     "duration": time_elapsed
+        # }  
+        # report_url = f"https://api.mangadex.network/report"
         # report_response = requests.post(report_url, json=report_json)
         # if report_response.status_code != 200:
         #     print(report_response.status_code)
@@ -235,3 +253,54 @@ class RequestHandler:
             return response.json()["data"]
         else:
             return []
+
+    def get_manga_by_status(self, statuses=["reading", "completed", "on_hold", "re_reading"]):
+        response = requests.get(self.mangadex_url_base + "/manga/status", headers=self._headers)
+        ids = [i for i in response.json()["statuses"].keys() if response.json()["statuses"].get(i) in statuses]
+        return self.get_manga_data_for_ids(ids)
+
+    def get_followed_manga_data(self):
+        response = requests.get(self.mangadex_url_base + "/manga/status", headers=self._headers)
+        ids = [i for i in response.json()["statuses"].keys()]
+        return self.get_manga_data_for_ids(ids)
+    
+    def get_manga_data_for_ids(self, ids):
+        manga_data = {}
+        remaining = len(ids)
+        offset = 0
+        while remaining > 0:
+            limit = min(100, remaining)
+
+            params = {"limit": 100, "ids[]": []}
+            params["ids[]"].extend(ids[offset:offset + limit])
+
+            response = requests.get(self.mangadex_url_base + "/manga", headers=self._headers, params=params)
+
+            remaining -= limit
+            offset += limit
+
+            if response.status_code == 401:
+                self.refresh_session()
+                response = requests.get(self.mangadex_url_base + "/manga", headers=self._headers,
+                                        params=params)
+            if response.status_code == 200:
+                tmp_list = response.json()["data"]
+
+                for manga in tmp_list:
+                    # get title
+                    if "en" in manga["attributes"]["title"].keys():
+                        title = manga["attributes"]["title"]["en"]
+
+                    else:
+                        for at in manga["attributes"]["altTitles"]:
+                            if "en" in at.keys():
+                                title = at["en"]
+                                break
+                        if title is None:
+                            lang = manga["attributes"]["title"].keys()[0]
+                            title = manga["attributes"]["title"][lang]
+                    # print(f"Adding {title} to list from {manga["attributes"][]}")
+                    manga_data.update({title: manga["id"]})
+        return manga_data
+
+    

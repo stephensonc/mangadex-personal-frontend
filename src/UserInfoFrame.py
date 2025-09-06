@@ -1,11 +1,11 @@
-import os
 from tkinter.constants import END, RAISED
 from MangaViewer import MangaViewer
+from RequestHandler import RequestHandler
 import tkinter as tk
 
 class UserInfoFrame(tk.Frame):
 
-    def __init__(self, request_handler, master=None):
+    def __init__(self, request_handler: RequestHandler, master=None):
         super(UserInfoFrame, self).__init__(master)
 
         self.request_handler = request_handler
@@ -50,22 +50,20 @@ class UserInfoFrame(tk.Frame):
         # self.follows_widget.bind('<<ListboxSelect>>', self.open_followed_manga)
 
     def open_followed_manga(self, event=None):
-        selected_index = self.follows_widget.curselection()
-        if(selected_index is not None and len(selected_index) > 0):
-            current_selection = self.follows_widget.get(selected_index)
-            manga_id = self.followed_manga[current_selection]["id"]
-            # print(f"Opening manga: {current_selection} : {manga_id}")
-            manga_viewer = MangaViewer(request_handler=self.request_handler, manga_id=manga_id)
+        current_selection = self.follows_widget.get(self.follows_widget.curselection())
+        manga_id = self.followed_manga[current_selection]["id"]
+        # print(f"Opening manga: {current_selection} : {manga_id}")
+        manga_viewer = MangaViewer(request_handler=self.request_handler, manga_id=manga_id)
 
 
     def get_follows_from_profile(self, limit=100):
-        request_list = self.request_handler.get_user_followed_manga_list(limit=limit)
+        request_list = self.request_handler.get_chunk_of_follows(limit=limit)
         followed_manga = request_list
         offset=limit
         if(request_list is None):
             request_list ={}
         while len(request_list) == limit:
-            request_list = self.request_handler.get_user_followed_manga_list(offset=offset)
+            request_list = self.request_handler.get_chunk_of_follows(offset=offset)
             followed_manga.update(request_list)
             offset+=limit
         return followed_manga

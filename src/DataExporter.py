@@ -40,7 +40,7 @@ class DataExporter:
         root = tk.Tk()
         root.attributes('-topmost', True)
         root.withdraw()
-        file_path = filedialog.askopenfilename(
+        file_path = filedialog.asksaveasfilename(
             parent=root,
             title=title,
             initialdir=start_dir,
@@ -59,7 +59,7 @@ class DataExporter:
             print("Unsupported format given: " + file_format + ". Defaulting to .txt")
             return ".txt"
 
-    def export_follows(self, file_format="list", file=""):
+    def export_follows(self, file_format="list", file=None):
         """Export follows list
         
         params:
@@ -67,17 +67,17 @@ class DataExporter:
             file -> the file path to write the file to. Will default to using the "exports" folder
         """
         print("Exporting follows list")
-        follows_list = self.request_handler.get_user_followed_manga_list()
+        follows_list = self.request_handler.get_manga_by_status()
         
         # Update default file extension
-        if(file==""):
+        if(file is None):
             file = self.default_directory + "/" + "user_follows" + self.get_default_file_extension(file_format=file_format)
 
         # Write to file
         with open(file, "w") as follows_file:
-            if(file_format=="list"):
+            if(file_format == "list"):
                 follows_file.write('\n'.join(str(name) for name in follows_list.keys()))
-            elif(file_format=="json"):
+            elif(file_format == "json"):
                 follows_file.write(json.dumps(follows_list, indent=2))
         if(os.path.isfile(file)):
             print("Export successful")
@@ -87,8 +87,7 @@ class DataExporter:
 
 def main():
     dataExporter = DataExporter()
-    dataExporter.export_follows()
-    dataExporter.export_follows(file_format="json")
+    tmp = dataExporter.request_handler.get_manga_by_status()
     dataExporter.export_follows_ui()
     dataExporter.export_follows_ui("json")
     pass

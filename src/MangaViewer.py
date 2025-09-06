@@ -1,9 +1,8 @@
-from pathlib import Path
 import tkinter as tk
 from PIL import ImageTk, Image
 import traceback
 from RequestHandler import RequestHandler
-from tkinter.constants import END, NE, NW, RAISED
+from tkinter.constants import END, NW, RAISED
 import math
 import re
 import os
@@ -20,7 +19,7 @@ class MangaViewer(tk.Toplevel):
 
         self.request_handler = request_handler
 
-        self.metadata = request_handler.get_manga_metadata_by_id(manga_id)
+        self.metadata = request_handler.get_manga_by_id(manga_id)
         try:        
             self.manga_title = self.metadata["attributes"]["title"]["en"]
         except:
